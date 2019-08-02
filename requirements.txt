@@ -1,0 +1,4 @@
+boto3==1.9.198
+requests==2.22.0
+scanpy==1.4.4.post1
+more-itertools==7.2.0
