@@ -3,6 +3,7 @@ SHELL ["/bin/bash", "-c"]
 RUN mkdir /build
 WORKDIR /build
 COPY . /build
-RUN pip install -r requirements.txt
+RUN pip install --upgrade pip \
+    && pip install -r requirements.txt
 # Run the following script when container launches.
-CMD [ "python", "./data_portal_summary_stats.py" ]
+ENTRYPOINT [ "python", "./data_portal_summary_stats.py"]

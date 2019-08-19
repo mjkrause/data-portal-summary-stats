@@ -2,10 +2,9 @@
 
 import sys
 import os
+import argparse
 import logging
-import boto3
-from src.settings import s3_bucket_info
-from src.matrix_summary_stats import MatrixSummaryStats
+from src.runner import run_data_portal_summary_stats
 
 
 # Set up logging
@@ -13,7 +12,7 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s %(message)s',
-                    filename=f'{ROOT_DIR}/{__file__}.log',
+                    filename=f'{ROOT_DIR}/{__file__.strip(".py")}.log',
                     filemode='w')
 # These libraries make a lot of debug-level log messages which make the log file hard to read
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -22,30 +21,42 @@ ch = logging.StreamHandler(sys.stdout)  # console handler to output to stdout
 ch.setLevel(logging.INFO)
 logger.addHandler(ch)
 
-_MSS = None  # mss is matrix summary stats, create global instance
-_MSS_CLIENT = None  # boto3 client
-
 
 def main():
-    logger.info('Downloading matrix, ETF, uploading images to S3...')
-    get_mss().get_expression_matrix()
-    get_mss().unzip_files()
-    get_mss().create_images()
-    get_mss().upload_figs_to_s3()
+    parser = argparse.ArgumentParser(
+        description='Per-project summary statistics and figures.'
+    )
+    args_group = parser.add_argument_group(title='arguments')
+    args_group.add_argument(
+        '--environ',
+        default='dev',
+        choices=('dev', 'integration', 'staging', 'prod'),
+        type=str,
+        help='Deployment environment (default: "dev") from which '
+             'matrix data are requested to create summary '
+             'statistics.'
+    )
+    args_group.add_argument(
+        '--source',
+        default='fresh',
+        choices=('fresh', 'canned'),
+        type=str,
+        help='Source of matrix files. "fresh" (default) denotes requesting '
+             'matrix files from the matrix service. "canned" denotes '
+             'downloading already created matrix files from AWS S3.'
+    )
+    args_group.add_argument(
+        '--blacklist',
+        default='false',
+        choices=('false', 'true'),
+        type=str,
+        help='Skip files with project IDs listed in a file named '
+             '"blacklist" during processing. Default: false.'
+    )
+    args_group.set_defaults(environ='dev', source='fresh', blacklist='False')
+    args = parser.parse_args()
 
-
-def mss_client():
-    global _MSS_CLIENT
-    if _MSS_CLIENT is None:
-        _MSS_CLIENT = boto3.client('s3')
-    return _MSS_CLIENT
-
-
-def get_mss():
-    global _MSS
-    if _MSS is None:
-        _MSS = MatrixSummaryStats(s3_bucket_info['bucket_name'], s3_bucket_info['key'], mss_client())
-    return _MSS
+    run_data_portal_summary_stats(args)
 
 
 if __name__ == "__main__":
