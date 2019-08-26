@@ -36,4 +36,5 @@ def get_blacklist() -> list:
 def get_blacklist_from_s3(client: botocore.client.S3, bucket: str, key: str) -> list:
     response = client.get_object(Bucket=bucket, Key=key)
     bytes_string = response['Body'].read()
+
     return bytes_string.decode().strip('\n').split('\n')
