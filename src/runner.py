@@ -9,7 +9,7 @@ import logging
 from more_itertools import first
 from src.settings import s3_bucket_info
 from src.matrix_summary_stats import MatrixSummaryStats
-from src.utils import get_blacklist
+from src.utils import get_blacklist_from_s3
 
 
 logger = logging.getLogger(__name__)
@@ -30,10 +30,13 @@ def run_data_portal_summary_stats(args: argparse.Namespace):
     # Temporary work-around for matrices that can't be processed for various reasons.
     if args.blacklist == 'false':
         do_not_process = []
-    elif args.blacklist == 'true':
-        do_not_process = get_blacklist()
     else:
-        do_not_process = []
+        assert args.blacklist == 'true'
+        do_not_process = get_blacklist_from_s3(
+            client=_MSS_CLIENT,
+            bucket=s3_bucket_info['deployment']['bucket_name'],
+            key='blacklist'
+        )
 
     logger.info(f'\nGenerating per-project summary statistics of matrix data from '
                 f'{get_mss(**input_args).deployment} deployment environment.\n')
