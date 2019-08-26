@@ -32,8 +32,9 @@ def run_data_portal_summary_stats(args: argparse.Namespace):
         do_not_process = []
     else:
         assert args.blacklist == 'true'
+        client = mss_client()
         do_not_process = get_blacklist_from_s3(
-            client=_MSS_CLIENT,
+            client=client,
             bucket=s3_bucket_info[args.environ]['bucket_name'],
             key='blacklist'
         )
