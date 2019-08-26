@@ -44,5 +44,12 @@ By _blacklisting_ we mean to exclude matrix files from the processing. `data-por
 will request a list of all available matrix files of projects. Some of those files might be 
  too large to be processed with the current version. The argument 
  `--blacklist` is a temporary solution for such matrix files. To use the feature create a file 
- named `blacklist` in the project root. If a matrix file is too large to be processed add its 
- project ID to this file, one project ID per line, without any delimiters.  
+ named `blacklist`. For each matrix file that empirically has been found to be too large to be
+ processed, add its project ID to this file, following the style of one project ID per line, 
+ without any delimiters. Then upload the file `blacklist` to the S3 bucket of the corresponding
+ deployment environment. One way to upload it is:
+ ```bash
+ export AWS_DEFAULT_PROFILE=my_profile
+ aws s3 cp blacklist s3://my_bucket/ 
+```
+where _my_bucket_ is the bucket name of the deployment environment.  

@@ -2,7 +2,7 @@
 
 import sys
 import math
-import botocore
+import boto3
 import logging
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ def get_blacklist() -> list:
     return do_not_process
 
 
-def get_blacklist_from_s3(client: botocore.client.S3, bucket: str, key: str) -> list:
+def get_blacklist_from_s3(client: boto3.client, bucket: str, key: str) -> list:
     response = client.get_object(Bucket=bucket, Key=key)
     bytes_string = response['Body'].read()
 
