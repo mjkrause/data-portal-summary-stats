@@ -235,6 +235,7 @@ class MatrixSummaryStats:
             }
         }
         logger.info(f'Requesting expression matrix for project document ID {project_document_id}')
+        logger.info(f'Request payload and filter settings: {payload}')
         response = requests.post(hca_matrix_service_url + 'matrix', json=payload)
         self.check_response(response)
         minute_counter = 0
