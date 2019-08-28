@@ -206,7 +206,7 @@ class MatrixSummaryStats:
         feature = 'gene'
         format_ = 'mtx'
         project_field_name = self.project_field_name
-        min_cell_count = 300
+        min_cell_count = 1000
         min_cell_count_field = 'genes_detected'
 
         hca_matrix_service_url = endpoints[self.deployment]['hca_matrix_service_url']
