@@ -34,13 +34,14 @@ matplotlib.use('Agg')
 class MatrixSummaryStats:
 
     def __init__(self, deployment: str, bucket_name: str, key: str, client: str,
-                 source_matrix: str, project_field_name=None):
+                 source_matrix: str, project_field_name, min_cell_count: int):
         self.deployment = deployment
         self.s3_bucket_name = bucket_name
         self.s3_key = key
         self.client = client
         self.source_matrix = source_matrix
         self.project_field_name = project_field_name  # needed if matrices requests from service
+        self.min_cell_count = min_cell_count  # for field genes_detected in matrix filter
         self.projdir = os.getcwd()
         self.project_uuid = None
         self.tmpdir = None
@@ -206,7 +207,7 @@ class MatrixSummaryStats:
         feature = 'gene'
         format_ = 'mtx'
         project_field_name = self.project_field_name
-        min_cell_count = 1000
+        min_cell_count = self.min_cell_count
         min_cell_count_field = 'genes_detected'
 
         hca_matrix_service_url = endpoints[self.deployment]['hca_matrix_service_url']

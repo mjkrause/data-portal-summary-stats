@@ -25,6 +25,7 @@ def run_data_portal_summary_stats(args: argparse.Namespace):
     input_args = {
         'deployment': args.environ,
         'project_field_name': 'project.provenance.document_id',
+        'min_cell_count': args.min_cell_count,
         'source_of_matrix': args.source
     }
     # Temporary work-around for matrices that can't be processed for various reasons.
@@ -94,7 +95,8 @@ def get_mss(**input_args):
             key=s3_bucket_info[input_args['deployment']]['key'],
             client=mss_client(),
             source_matrix=input_args['source_of_matrix'],
-            project_field_name=input_args['project_field_name']
+            project_field_name=input_args['project_field_name'],
+            min_cell_count=input_args['min_cell_count']
         )
     return _MSS
 
