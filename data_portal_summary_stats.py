@@ -54,15 +54,15 @@ def main():
              '"blacklist" during processing. Default: false.'
     )
     args_group.add_argument(
-        '--min_cell_count',
+        '--min_gene_count',
         default=1000,
         choices=range(300, 2000),
         metavar="[300-2000]",
         type=int,
-        help='The minimal cell count in the "genes_detected" field '
+        help='The minimal gene count in the "genes_detected" field '
              '(range from 300 to 2000). Default is 1000.'
     )
-    args_group.set_defaults(environ='dev', source='fresh', blacklist='False', min_cell_count=1000)
+    args_group.set_defaults(environ='dev', source='fresh', blacklist='False', min_gene_count=1000)
     args = parser.parse_args()
 
     run_data_portal_summary_stats(args)
