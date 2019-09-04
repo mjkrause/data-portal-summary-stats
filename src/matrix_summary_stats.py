@@ -202,8 +202,7 @@ class MatrixSummaryStats:
         logger.info('Temporary directory removed')
 
     def _request_matrix(self, project_document_id: str = None) -> requests.models.Response:
-        # ToDo: how to find project UUIDs?
-        # Parameters.
+        # Parameters to construct filter for matrix request.
         feature = 'gene'
         format_ = 'mtx'
         project_field_name = self.project_field_name
