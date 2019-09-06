@@ -7,7 +7,7 @@ data "aws_vpc" "default" {
 data "aws_availability_zones" "available" {}
 
 data "aws_subnet" "default" {
-  count             = 3
+  count             = 2
   vpc_id            = "${data.aws_vpc.default.id}"
   availability_zone = "${data.aws_availability_zones.available.names[count.index]}"
   default_for_az    = true
@@ -19,208 +19,115 @@ data "aws_ecs_cluster" "default"{
 
 locals {
   common_tags = "${map(
-    "managedBy" , "terraform",
-    "Name"      , "${var.GAE_INFRA_TAG_SERVICE}-${var.GAE_INFRA_TAG_PROJECT}-${var.GAE_DEPLOYMENT_STAGE}",
-    "project"   , "${var.GAE_INFRA_TAG_PROJECT}",
-    "env"       , "${var.GAE_DEPLOYMENT_STAGE}",
-    "service"   , "${var.GAE_INFRA_TAG_SERVICE}",
-    "owner"     , "${var.GAE_INFRA_TAG_OWNER}"
+    "managedBy"       , "terraform",
+    "environ"         , "dev",
+    "source"          , "canned",
+    "min_gene_count"  , "1200",
+    "blacklist"       , "true"
   )}"
 }
 
-resource "aws_iam_role" "task-executor" {
-  name = "gae-exporter-${var.GAE_DEPLOYMENT_STAGE}"
+resource "aws_iam_role" "data-portal-summary-stats-role" {
+  name = "data-portal-summary-stats-role"
   assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": [
-          "ecs.amazonaws.com",
-          "ecs-tasks.amazonaws.com",
-          "events.amazonaws.com"
-        ]
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role_policy_attachment" "task-executor-ecs" {
-  role = "${aws_iam_role.task-executor.name}"
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-
-resource "aws_iam_role_policy" "AWS-Events-Invoke" {
-  name = "gae-exporter-cloudwatch-event-invoke-${var.GAE_DEPLOYMENT_STAGE}"
-  role = "${aws_iam_role.task-executor.id}"
-  policy = <<EOF
-{
+  {
     "Version": "2012-10-17",
     "Statement": [
         {
             "Effect": "Allow",
             "Action": [
-                "ecs:RunTask"
+                "ecs:CreateCluster",
+                "ecs:DeregisterContainerInstance",
+                "ecs:DiscoverPollEndpoint",
+                "ecs:Poll",
+                "ecs:RegisterContainerInstance",
+                "ecs:StartTelemetrySession",
+                "ecs:Submit*",
+                "ecr:GetAuthorizationToken",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage"
             ],
-            "Resource": [
-                "arn:aws:ecs:*:${data.aws_caller_identity.current.account_id}:task-definition/gae-exporter-${var.GAE_DEPLOYMENT_STAGE}:*"
-            ],
-            "Condition": {
-                "ArnLike": {
-                    "ecs:cluster": "arn:aws:ecs:*:${data.aws_caller_identity.current.account_id}:cluster/default"
-                }
-            }
+            "Resource": "*"
         },
         {
+            "Sid": "VisualEditor0",
             "Effect": "Allow",
-            "Action": "iam:PassRole",
-            "Resource": [
-                "*"
+            "Action": "s3:ListBucket",
+            "Resource": "arn:aws:s3:::*"
+        },
+        {
+            "Sid": "VisualEditor1",
+            "Effect": "Allow",
+            "Action": [
+                "s3:PutObject",
+                "s3:GetObject"
             ],
-            "Condition": {
-                "StringLike": {
-                    "iam:PassedToService": "ecs-tasks.amazonaws.com"
-                }
-            }
+            "Resource": "arn:aws:s3:::*/*"
         }
     ]
-}
-EOF
-}
-
-resource "aws_iam_role" "task-performer" {
-  name = "gae-exporter-task-performer-${var.GAE_DEPLOYMENT_STAGE}"
-  tags = "${local.common_tags}"
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": [
-          "ecs-tasks.amazonaws.com"
-        ]
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role_policy" "task-performer" {
-  name = "gae-exporter-task-performer-${var.GAE_DEPLOYMENT_STAGE}"
-  role = "${aws_iam_role.task-performer.id}"
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-            {
-      "Effect": "Allow",
-      "Action": "secretsmanager:Get*",
-      "Resource": "arn:aws:secretsmanager:*:${data.aws_caller_identity.current.account_id}:secret:${var.GAE_SECRETS_STORE}/*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "tag:GetTagKeys",
-        "tag:GetResources",
-        "tag:GetTagValues",
-        "cloudwatch:*"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-          "dynamodb:*"
-      ],
-      "Resource": "arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/ga-metrics-${var.GAE_DEPLOYMENT_STAGE}"
-    },
-    {
-      "Effect": "Allow",
-      "Action":[
-        "Logs:FilterLogEvents",
-        "Logs:GetLogEvents",
-        "Logs:GetQueryResults",
-        "Logs:DescribeLogGroups",
-        "Logs:DescribeLogStreams",
-        "Logs:GetLogRecord",
-        "Logs:StartQuery",
-        "Logs:StopQuery"
-      ],
-      "Resource": "arn:aws:logs:*:*:*"
-    },
-    {
-      "Effect": "Allow" ,
-      "Action": [
-        "ecs:ListTasks"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-EOF
+  }
+  EOF
 }
 
 resource "aws_ecs_task_definition" "monitor" {
-  # Note if changing the family, also change the IAM ROLE POLICY under ecs:RunTask; unable to reference due to dependency cycle.
-  family = "gae-exporter-${var.GAE_DEPLOYMENT_STAGE}"
-  execution_role_arn = "${aws_iam_role.task-executor.arn}"
-  task_role_arn = "${aws_iam_role.task-performer.arn}"
+  family = "data-portal-summary-stats-${var.deployment_stage}"
+  execution_role_arn = var.execution_role_arn
+  task_role_arn = var.task_role_arn
   requires_compatibilities = ["FARGATE"]
   network_mode = "awsvpc"
-  cpu = "256"
-  memory = "512"
+  cpu = "2048"
+  memory = "16384"
+  revision = 26
   container_definitions = <<DEFINITION
 [
   {
-    "family": "gae-exporter",
-    "name": "gae-exporter-fargate",
-    "image": "humancellatlas/gae-exporter-${var.GAE_DEPLOYMENT_STAGE}",
+    "family": "data-portal-summary-stats",
+    "name": "data-portal-summary-stats-fargate",
+    "image": "${var.arn_}${var.image_name}:${var.image_tag}"
     "essential": true,
     "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "${aws_cloudwatch_log_group.task-performer.name}",
-          "awslogs-region": "us-east-1",
+          "awslogs-group": "/ecs/${var.resource_name}",
+          "awslogs-region": "${var.region}"",
           "awslogs-stream-prefix": "ecs"
         }
     },
-    "environment" :[
-          {"name": "GAE_DEPLOYMENT_STAGE", "value": "${var.GAE_DEPLOYMENT_STAGE}"},
-          {"name": "GAE_SECRETS_STORE", "value": "${var.GAE_SECRETS_STORE}"}
-    ]
+    "command": [
+          "--environ",
+          "prod",
+          "--source",
+          "fresh",
+          "--blacklist",
+          "true",
+          "--min_gene_count",
+          "1200"
+     ],
+    "name": "${var.resource_name}"
   }
 ]
 DEFINITION
   tags = "${local.common_tags}"
 }
 
-
-resource "aws_cloudwatch_log_group" "task-performer" {
-  name              = "/aws/service/gae-exporter-task-performer-${var.GAE_DEPLOYMENT_STAGE}"
+resource "aws_cloudwatch_log_group" "task-execution" {
+  name              = "/ecs/${var.resource_name}-${var.deployment_stage}"
   retention_in_days = 1827
 }
 
-resource "aws_cloudwatch_event_rule" "gae-exporter" {
-  name = "gae-exporter-trigger-${var.GAE_DEPLOYMENT_STAGE}"
-  description = "schedule trigger for data input to GAE"
+resource "aws_cloudwatch_event_rule" "dpss-scheduler" {
+  name = "dpss-trigger-${var.deployment_stage}"
+  description = "Schedule to run data-portal-summary-stats"
   tags = "${local.common_tags}"
-  schedule_expression = "cron(1/10 * * * ? *)"
+  schedule_expression = "cron(*/5 * * * *)"
 }
 
-
 resource "aws_cloudwatch_event_target" "scheduled_task" {
-  rule       = "${aws_cloudwatch_event_rule.gae-exporter.name}"
+  rule       = "${aws_cloudwatch_event_rule.dpss-scheduler.name}"
   arn        = "${data.aws_ecs_cluster.default.arn}"
-  role_arn   = "${aws_iam_role.task-executor.arn}"
+  role_arn   = "${aws_iam_role.data-portal-summary-stats-role.arn}"
+
   ecs_target = {
     task_count          = 1
     task_definition_arn = "${aws_ecs_task_definition.monitor.arn}"
@@ -232,4 +139,9 @@ resource "aws_cloudwatch_event_target" "scheduled_task" {
       subnets          = ["${data.aws_subnet.default.*.id}"]
     }
   }
+}
+
+resource "aws_cloudwatch_event_target" "" {
+  arn = ""
+  rule = "${aws_cloudwatch_event_rule.dpss-scheduler.name}"
 }
