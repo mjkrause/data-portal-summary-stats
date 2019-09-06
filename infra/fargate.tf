@@ -12,24 +12,19 @@ provider "aws" {
 
 data "aws_caller_identity" "current"{}
 data "aws_region" "current" {}
-data "aws_vpc" "selected" {
-  id = "${var.vpc_id}"
+
+data "aws_vpc" "default" {
+  default = true
 }
 
 data "aws_availability_zones" "available" {}
 
-data "aws_subnet" "data-portal-summary-stats" {
-  count             = 2
-  vpc_id            = "${data.aws_vpc.selected.id}"
+data "aws_subnet" "default" {
+  count = 2
+  vpc_id = "${data.aws_vpc.default.id}"
   availability_zone = "${data.aws_availability_zones.available.names[count.index]}"
-  default_for_az    = true
+  default_for_az = true
 }
-
-//resource "aws_subnet" "data-portal-summary-stats-subnet" {
-//  vpc_id = "${data.aws_vpc.selected.id}"
-//  availability_zone = "${data.aws_availability_zones.available.names[count.index]}"
-//  cidr_block = "${cidrsubnet(data.aws_vpc.selected.cidr_block, 4, 1)}"
-//}
 
 data "aws_ecs_cluster" "default"{
   cluster_name = var.app_name
@@ -47,10 +42,20 @@ locals {
 
 resource "aws_iam_role" "data-portal-summary-stats-role-tf" {
   name = "data-portal-summary-stats-role-tf"
-  assume_role_policy = <<FILE
+  assume_role_policy = <<EOF
   {
     "Version": "2012-10-17",
     "Statement": [
+        {
+            "Sid": "",
+            "Effect": "Allow",
+            "Principal": {
+                 "Service": [
+                     "ecs.amazonaws.com"
+                 ]
+            },
+            "Action": "sts:AssumeRole"
+        },
         {
             "Effect": "Allow",
             "Action": [
@@ -66,13 +71,15 @@ resource "aws_iam_role" "data-portal-summary-stats-role-tf" {
                 "ecr:GetDownloadUrlForLayer",
                 "ecr:BatchGetImage"
             ],
-            "Resource": "*"
+            "Resource": "*",
+            "Action": "sts:AssumeRole"
         },
         {
             "Sid": "VisualEditor0",
             "Effect": "Allow",
             "Action": "s3:ListBucket",
-            "Resource": "arn:aws:s3:::*"
+            "Resource": "arn:aws:s3:::*",
+            "Action": "sts:AssumeRole"
         },
         {
             "Sid": "VisualEditor1",
@@ -81,11 +88,12 @@ resource "aws_iam_role" "data-portal-summary-stats-role-tf" {
                 "s3:PutObject",
                 "s3:GetObject"
             ],
-            "Resource": "arn:aws:s3:::*/*"
+            "Resource": "arn:aws:s3:::*/*",
+            "Action": "sts:AssumeRole"
         }
     ]
   }
-  FILE
+  EOF
 }
 
 resource "aws_ecs_task_definition" "monitor" {
@@ -141,11 +149,10 @@ resource "aws_cloudwatch_event_rule" "dpss-scheduler" {
 }
 
 resource "aws_cloudwatch_event_target" "scheduled_task" {
-  rule       = "${aws_cloudwatch_event_rule.dpss-scheduler.name}"
-  arn        = "${data.aws_ecs_cluster.default.arn}"
-  role_arn   = "${aws_iam_role.data-portal-summary-stats-role-tf.arn}"
-  input      = "{}"
-
+  rule = "${aws_cloudwatch_event_rule.dpss-scheduler.name}"
+  arn = "${data.aws_ecs_cluster.default.arn}"
+  role_arn = "${aws_iam_role.data-portal-summary-stats-role-tf.arn}"
+  input = "{}"
   ecs_target {
       task_count          = 1
       task_definition_arn = "${aws_ecs_task_definition.monitor.arn}"
@@ -155,7 +162,7 @@ resource "aws_cloudwatch_event_target" "scheduled_task" {
       network_configuration {
         assign_public_ip = true
         //subnets          = ["${aws_subnet.data-portal-summary-stats-subnet.id}"]
-        subnets          = ["${data.aws_subnet.data-portal-summary-stats.*.id}"]
+        subnets          = "${data.aws_subnet.default.*.id}"
       }
     }
 }
