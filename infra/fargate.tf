@@ -3,26 +3,36 @@ terraform {
 }
 
 provider "aws" {
-  profile = var.profile
+  assume_role {
+    role_arn = var.role_arn
+  }
+//  profile = var.profile
   region = var.region
 }
+
 data "aws_caller_identity" "current"{}
 data "aws_region" "current" {}
-data "aws_vpc" "default" {
-  default = true
+data "aws_vpc" "selected" {
+  id = "${var.vpc_id}"
 }
 
 data "aws_availability_zones" "available" {}
 
-data "aws_subnet" "default" {
+data "aws_subnet" "data-portal-summary-stats" {
   count             = 2
-  vpc_id            = "${data.aws_vpc.default.id}"
+  vpc_id            = "${data.aws_vpc.selected.id}"
   availability_zone = "${data.aws_availability_zones.available.names[count.index]}"
   default_for_az    = true
 }
 
+//resource "aws_subnet" "data-portal-summary-stats-subnet" {
+//  vpc_id = "${data.aws_vpc.selected.id}"
+//  availability_zone = "${data.aws_availability_zones.available.names[count.index]}"
+//  cidr_block = "${cidrsubnet(data.aws_vpc.selected.cidr_block, 4, 1)}"
+//}
+
 data "aws_ecs_cluster" "default"{
-  cluster_name = "default"
+  cluster_name = var.app_name
 }
 
 locals {
@@ -35,8 +45,8 @@ locals {
   )}"
 }
 
-resource "aws_iam_role" "data-portal-summary-stats-role" {
-  name = "data-portal-summary-stats-role"
+resource "aws_iam_role" "data-portal-summary-stats-role-tf" {
+  name = "data-portal-summary-stats-role-tf"
   assume_role_policy = <<FILE
   {
     "Version": "2012-10-17",
@@ -91,13 +101,13 @@ resource "aws_ecs_task_definition" "monitor" {
   {
     "family": "data-portal-summary-stats",
     "name": "data-portal-summary-stats-fargate",
-    "image": "${var.ecr_path}${var.image_name}:${var.image_tag}"
+    "image": "${var.ecr_path}${var.image_name}:${var.image_tag}",
     "essential": true,
     "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
           "awslogs-group": "/ecs/${var.app_name}",
-          "awslogs-region": "${var.region}"",
+          "awslogs-region": "${var.region}",
           "awslogs-stream-prefix": "ecs"
         }
     },
@@ -124,17 +134,17 @@ resource "aws_cloudwatch_log_group" "task-execution" {
 }
 
 resource "aws_cloudwatch_event_rule" "dpss-scheduler" {
-  name = "dpss-trigger-${var.deployment_stage}"
-  description = "Schedule to run data-portal-summary-stats"
-  tags = "${local.common_tags}"
+  name                = "dpss-trigger-${var.deployment_stage}"
+  description         = "Schedule to run data-portal-summary-stats"
+  tags                = "${local.common_tags}"
   schedule_expression = "cron(*/5 * * * *)"
 }
 
 resource "aws_cloudwatch_event_target" "scheduled_task" {
   rule       = "${aws_cloudwatch_event_rule.dpss-scheduler.name}"
   arn        = "${data.aws_ecs_cluster.default.arn}"
-  role_arn   = "${aws_iam_role.data-portal-summary-stats-role.arn}"
-  input = "{}"
+  role_arn   = "${aws_iam_role.data-portal-summary-stats-role-tf.arn}"
+  input      = "{}"
 
   ecs_target {
       task_count          = 1
@@ -144,7 +154,8 @@ resource "aws_cloudwatch_event_target" "scheduled_task" {
 
       network_configuration {
         assign_public_ip = true
-        subnets          = ["${data.aws_subnet.default.*.id}"]
+        //subnets          = ["${aws_subnet.data-portal-summary-stats-subnet.id}"]
+        subnets          = ["${data.aws_subnet.data-portal-summary-stats.*.id}"]
       }
     }
 }
