@@ -1,3 +1,11 @@
+terraform {
+  required_version = ">=0.12"
+}
+
+provider "aws" {
+  profile = var.profile
+  region = var.region
+}
 data "aws_caller_identity" "current"{}
 data "aws_region" "current" {}
 data "aws_vpc" "default" {
@@ -29,7 +37,7 @@ locals {
 
 resource "aws_iam_role" "data-portal-summary-stats-role" {
   name = "data-portal-summary-stats-role"
-  assume_role_policy = <<EOF
+  assume_role_policy = <<FILE
   {
     "Version": "2012-10-17",
     "Statement": [
@@ -67,7 +75,7 @@ resource "aws_iam_role" "data-portal-summary-stats-role" {
         }
     ]
   }
-  EOF
+  FILE
 }
 
 resource "aws_ecs_task_definition" "monitor" {
@@ -78,18 +86,17 @@ resource "aws_ecs_task_definition" "monitor" {
   network_mode = "awsvpc"
   cpu = "2048"
   memory = "16384"
-  revision = 26
   container_definitions = <<DEFINITION
 [
   {
     "family": "data-portal-summary-stats",
     "name": "data-portal-summary-stats-fargate",
-    "image": "${var.arn_}${var.image_name}:${var.image_tag}"
+    "image": "${var.ecr_path}${var.image_name}:${var.image_tag}"
     "essential": true,
     "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/ecs/${var.resource_name}",
+          "awslogs-group": "/ecs/${var.app_name}",
           "awslogs-region": "${var.region}"",
           "awslogs-stream-prefix": "ecs"
         }
@@ -104,7 +111,7 @@ resource "aws_ecs_task_definition" "monitor" {
           "--min_gene_count",
           "1200"
      ],
-    "name": "${var.resource_name}"
+    "name": "${var.app_name}"
   }
 ]
 DEFINITION
@@ -112,7 +119,7 @@ DEFINITION
 }
 
 resource "aws_cloudwatch_log_group" "task-execution" {
-  name              = "/ecs/${var.resource_name}-${var.deployment_stage}"
+  name              = "/ecs/${var.app_name}-${var.deployment_stage}"
   retention_in_days = 1827
 }
 
@@ -127,21 +134,17 @@ resource "aws_cloudwatch_event_target" "scheduled_task" {
   rule       = "${aws_cloudwatch_event_rule.dpss-scheduler.name}"
   arn        = "${data.aws_ecs_cluster.default.arn}"
   role_arn   = "${aws_iam_role.data-portal-summary-stats-role.arn}"
+  input = "{}"
 
-  ecs_target = {
-    task_count          = 1
-    task_definition_arn = "${aws_ecs_task_definition.monitor.arn}"
-    launch_type         = "FARGATE"
-    platform_version    = "LATEST"
+  ecs_target {
+      task_count          = 1
+      task_definition_arn = "${aws_ecs_task_definition.monitor.arn}"
+      launch_type         = "FARGATE"
+      platform_version    = "LATEST"
 
-    network_configuration = {
-      assign_public_ip = true
-      subnets          = ["${data.aws_subnet.default.*.id}"]
+      network_configuration {
+        assign_public_ip = true
+        subnets          = ["${data.aws_subnet.default.*.id}"]
+      }
     }
-  }
-}
-
-resource "aws_cloudwatch_event_target" "" {
-  arn = ""
-  rule = "${aws_cloudwatch_event_rule.dpss-scheduler.name}"
 }
