@@ -61,7 +61,7 @@ those the policies to the roles.
 /*
 Policy and role for ECS events
 */
-resource "aws_iam_role" "data-portal-summary-stats_ecs_events" {
+resource "aws_iam_role" "data-portal-summary-stats-ecs-events" {
   name = "data-portal-summary-stats_ecs_events"
   description = "Run dpss ecs task"
   assume_role_policy = <<EOF
@@ -84,7 +84,7 @@ resource "aws_iam_role" "data-portal-summary-stats_ecs_events" {
 EOF
 }
 
-resource "aws_iam_policy" "data-portal-summary-stats_ecs_events-policy" {
+resource "aws_iam_policy" "data-portal-summary-stats-ecs-events-policy" {
   name = "data-portal-summary-stats-policy-run-task"
   description = "Run dpss ecs task"
 
@@ -126,14 +126,19 @@ DOC
 }
 
 // Connect role to policy.
-resource "aws_iam_role_policy_attachment" "ecs_events_attach" {
-  policy_arn = "${aws_iam_policy.data-portal-summary-stats_ecs_events-policy.arn}"
-  role       = "${aws_iam_role.data-portal-summary-stats_ecs_events.id}"
+resource "aws_iam_role_policy_attachment" "ecs-events-attach" {
+  policy_arn = "${aws_iam_policy.data-portal-summary-stats-ecs-events-policy.arn}"
+  role       = "${aws_iam_role.data-portal-summary-stats-ecs-events.id}"
 }
 
-resource "aws_iam_role_policy_attachment" "ecs_events_attach2" {
+resource "aws_iam_role_policy_attachment" "ecs-events-attach2" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-  role       = "${aws_iam_role.data-portal-summary-stats_ecs_events.id}"
+  role       = "${aws_iam_role.data-portal-summary-stats-ecs-events.id}"
+}
+
+resource "aws_iam_role_policy_attachment" "ecs-events-attach3" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceEventsRole"
+  role = "${aws_iam_role.data-portal-summary-stats-ecs-events.id}"
 }
 
 /*
@@ -233,7 +238,7 @@ resource "aws_iam_role_policy_attachment" "task-performer-attach" {
 
 resource "aws_ecs_task_definition" "dpss_ecs_task_definition" {
   family = "${var.app_name}-${var.deployment_stage}"
-  execution_role_arn       = "${aws_iam_role.data-portal-summary-stats_ecs_events.arn}"
+  execution_role_arn       = "${aws_iam_role.data-portal-summary-stats-ecs-events.arn}"
   task_role_arn            = "${aws_iam_role.data-portal-summary-stats-task-performer.arn}"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
@@ -244,7 +249,7 @@ resource "aws_ecs_task_definition" "dpss_ecs_task_definition" {
 [
   {
     "family": "data-portal-summary-stats",
-    "name": "data-portal-summary-stats-fargate",
+    "name": "data-portal-summary-stats",
     "image": "${var.ecr_path}${var.image_name}:${var.image_tag}",
     "essential": true,
     "logConfiguration": {
@@ -276,14 +281,14 @@ resource "aws_cloudwatch_event_rule" "dpss-scheduler" {
   name                = "dpss-trigger-${var.deployment_stage}"
   description         = "Schedule to run data-portal-summary-stats"
   tags                = "${local.common_tags}"
-  schedule_expression = "cron(1/5 * * * ? *)"
+  schedule_expression = "cron(1/2 * * * ? *)"
 }
 
 resource "aws_cloudwatch_event_target" "scheduled_task" {
   target_id = "run-scheduled-dpss-task-every-24h"
   arn = "${data.aws_ecs_cluster.default.arn}"
   rule = "${aws_cloudwatch_event_rule.dpss-scheduler.name}"
-  role_arn = "${aws_iam_role.data-portal-summary-stats_ecs_events.arn}"
+  role_arn = "${aws_iam_role.data-portal-summary-stats-ecs-events.arn}"
 
   ecs_target {
       task_count          = 1
