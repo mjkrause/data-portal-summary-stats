@@ -4,7 +4,7 @@ The service generates per-project summary figures. The service updates daily by 
 a Docker container on AWS Fargate. Figures are persisted on AWS S3. The general
 architecture is as follows:
 
-[](spec_v3.png)
+![](./spec_v3.png)
  
 
 ## Build Docker container
