@@ -31,11 +31,7 @@ data "aws_ecs_cluster" "default"{
 
 locals {
   common_tags = "${map(
-    "managedBy"       , "terraform",
-    "environ"         , "dev",
-    "source"          , "canned",
-    "min_gene_count"  , "1200",
-    "blacklist"       , "true"
+    "managedBy"       , "terraform"
   )}"
 }
 
@@ -125,7 +121,7 @@ resource "aws_iam_role_policy_attachment" "ecs-events-attach2" {
 // This attachment is required to pull the container from ECR.
 resource "aws_iam_role_policy_attachment" "ecs-events-attach3" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceEventsRole"
-  role = "${aws_iam_role.data-portal-summary-stats-ecs-events.id}"
+  role       = "${aws_iam_role.data-portal-summary-stats-ecs-events.id}"
 }
 
 /*
@@ -153,7 +149,7 @@ EOF
 }
 
 resource "aws_iam_policy" "data-portal-summary-stats-task-performer-policy" {
-  name = "data-portal-summary-stats-task-performer-policy"
+  name        = "data-portal-summary-stats-task-performer-policy"
   description = "Perform task"
 
   policy = <<EOF
@@ -221,11 +217,11 @@ EOF
 // Attached policies to role.
 resource "aws_iam_role_policy_attachment" "task-performer-attach" {
   policy_arn = "${aws_iam_policy.data-portal-summary-stats-task-performer-policy.arn}"
-  role = "${aws_iam_role.data-portal-summary-stats-task-performer.id}"
+  role       = "${aws_iam_role.data-portal-summary-stats-task-performer.id}"
 }
 
 resource "aws_ecs_task_definition" "dpss_ecs_task_definition" {
-  family = "${var.app_name}-${var.deployment_stage}"
+  family                   = "${var.app_name}-${var.deployment_stage}"
   execution_role_arn       = "${aws_iam_role.data-portal-summary-stats-ecs-events.arn}"
   task_role_arn            = "${aws_iam_role.data-portal-summary-stats-task-performer.arn}"
   requires_compatibilities = ["FARGATE"]
