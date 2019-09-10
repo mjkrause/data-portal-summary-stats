@@ -6,7 +6,6 @@ architecture is as follows:
 
 ![](./spec_v4.png)
  
-
 ## Build Docker container
 To build a Docker container that runs `data-portal-summary-stats` create a directory that you
 name for instance `build`, then copy all relevant files from the project root into `build`:
