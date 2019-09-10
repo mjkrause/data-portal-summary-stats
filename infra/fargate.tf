@@ -69,7 +69,6 @@ resource "aws_iam_role" "data-portal-summary-stats_ecs_events" {
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "",
       "Effect": "Allow",
       "Principal": {
         "Service": [
@@ -99,8 +98,13 @@ resource "aws_iam_policy" "data-portal-summary-stats_ecs_events-policy" {
                 "ecs:RunTask"
             ],
             "Resource": [
-                "*"
-            ]
+                "arn:aws:ecs::${data.aws_caller_identity.current.account_id}:task-definition/data-portal-summary-stats-${var.deployment_stage}:*"
+            ],
+            "Condition": {
+                "ArnLike": {
+                     "ecs:cluster": "${data.aws_ecs_cluster.default.arn}"
+                }
+            }
         },
         {
             "Effect": "Allow",
@@ -108,7 +112,7 @@ resource "aws_iam_policy" "data-portal-summary-stats_ecs_events-policy" {
                 "iam:PassRole"
             ],
             "Resource": [
-                "*"
+                "arn:aws:iam::${var.acc_number}:role/ecsTaskExecutionRole"
             ],
             "Condition": {
                 "StringLike": {
@@ -272,7 +276,7 @@ resource "aws_cloudwatch_event_rule" "dpss-scheduler" {
   name                = "dpss-trigger-${var.deployment_stage}"
   description         = "Schedule to run data-portal-summary-stats"
   tags                = "${local.common_tags}"
-  schedule_expression = "rate(5 minutes)"
+  schedule_expression = "cron(1/5 * * * ? *)"
 }
 
 resource "aws_cloudwatch_event_target" "scheduled_task" {
@@ -297,6 +301,7 @@ resource "aws_cloudwatch_event_target" "scheduled_task" {
 {
   "containerOverrides": [
     {
+      "name": "data-portal-summary-stats",
       "command": [
         "--environ","dev",
         "--source","canned",
