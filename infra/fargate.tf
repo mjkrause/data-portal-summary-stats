@@ -20,9 +20,9 @@ data "aws_vpc" "data-portal-summary-stats" {
   id = var.dpss_vpc_id
 }
 
-data "aws_iam_role" "ecs_task_execution_role" {
-  name = "ecsTaskExecutionRole"
-}
+//data "aws_iam_role" "ecs_task_execution_role" {
+//  name = "ecsTaskExecutionRole"
+//}
 
 // Fetch AZs in current region.
 data "aws_availability_zones" "available" {}
@@ -54,103 +54,9 @@ locals {
 }
 
 /*
-In the following we first define an IAM role, then we create two policies, one for ECR/ECS
-service, another for S3 service. Finally, we attached those two policies to the role.
+In the following we first define an IAM role, then we create policies, and finally, we attach
+those the policies to the roles.
 */
-
-resource "aws_iam_role" "data-portal-summary-stats-role-tf" {
-  name = "data-portal-summary-stats-role-tf"
-  description = "Allows ECS tasks to call AWS services on your behalf."
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Effect": "Allow",
-      "Principal": {
-        "Service": [
-          "ecs.amazonaws.com",
-          "ecs-tasks.amazonaws.com",
-          "s3.amazonaws.com"
-        ]
-      },
-      "Sid": ""
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_policy" "data-portal-summary-stats-policy-ecs-tf" {
-  name = "data-portal-summary-stats-policy-ecs-tf"
-  description = "data-portal-summary-stats ECS policy (TF)"
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "ecs:CreateCluster",
-        "ecs:DeregisterContainerInstance",
-        "ecs:DiscoverPollEndpoint",
-        "ecs:Poll",
-        "ecs:RegisterContainerInstance",
-        "ecs:StartTelemetrySession",
-        "ecs:Submit*",
-        "ecr:GetAuthorizationToken",
-        "ecr:BatchCheckLayerAvailability",
-        "ecr:GetDownloadUrlForLayer",
-        "ecr:BatchGetImage",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_policy" "data-portal-summary-stats-policy-s3-tf" {
-  name        = "data-portal-summary-stats-policy-s3-tf"
-  description = "data-portal-summary-stats S3 policy (TF)"
-  policy      = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "VisualEditor0",
-      "Effect": "Allow",
-      "Action": "s3:ListBucket",
-      "Resource": "arn:aws:s3:::*"
-    },
-    {
-      "Sid": "VisualEditor1",
-      "Effect": "Allow",
-      "Action": [
-          "s3:PutObject",
-          "s3:GetObject"
-      ],
-      "Resource": "arn:aws:s3:::*/*"
-    }
-  ]
-}
-EOF
-}
-
-
-resource "aws_iam_role_policy_attachment" "dpss-attach1" {
-  policy_arn = "${aws_iam_policy.data-portal-summary-stats-policy-ecs-tf.arn}"
-  role       = "${aws_iam_role.data-portal-summary-stats-role-tf.name}"
-}
-
-resource "aws_iam_role_policy_attachment" "dpss-attach2" {
-  policy_arn = "${aws_iam_policy.data-portal-summary-stats-policy-s3-tf.arn}"
-  role       = "${aws_iam_role.data-portal-summary-stats-role-tf.name}"
-}
-
 
 /*
 Policy and role for ECS events
@@ -179,10 +85,10 @@ resource "aws_iam_role" "data-portal-summary-stats_ecs_events" {
 EOF
 }
 
-resource "aws_iam_role_policy" "dpss_ecs-policy-run-task" {
+resource "aws_iam_policy" "data-portal-summary-stats_ecs_events-policy" {
   name = "data-portal-summary-stats-policy-run-task"
-  //description = "Run dpss ecs task"
-  role = "${aws_iam_role.data-portal-summary-stats_ecs_events.id}"
+  description = "Run dpss ecs task"
+
   policy = <<DOC
 {
     "Version": "2012-10-17",
@@ -190,22 +96,15 @@ resource "aws_iam_role_policy" "dpss_ecs-policy-run-task" {
         {
             "Effect": "Allow",
             "Action": [
-                 "ecs:RunTask"
+                "ecs:RunTask"
             ],
             "Resource": [
-                  "${replace(aws_ecs_task_definition.dpss_ecs_task_definition.arn, "/:\\d+$/", ":*")}"
-            ],
-            "Condition": {
-                "ArnLike": {
-                    "ecs:cluster": "arn:aws:ecs:*:${var.role_arn}:cluster/data-portal-summary-stats"
-                }
-            }
+                "*"
+            ]
         },
         {
             "Effect": "Allow",
             "Action": [
-                "iam:ListInstanceProfiles",
-                "iam:ListRoles",
                 "iam:PassRole"
             ],
             "Resource": [
@@ -222,18 +121,22 @@ resource "aws_iam_role_policy" "dpss_ecs-policy-run-task" {
 DOC
 }
 
-//// Connect role to policy.
-//resource "aws_iam_role_policy_attachment" "ecs_events_attach" {
-//  policy_arn = "${aws_iam_policy.dpss_ecs-policy-run-task.arn}"
-//  //role = "${aws_iam_role.ecs_events.name}"
-//  role = "${aws_iam_role.data-portal-summary-stats_ecs_events.id}"
-//}
+// Connect role to policy.
+resource "aws_iam_role_policy_attachment" "ecs_events_attach" {
+  policy_arn = "${aws_iam_policy.data-portal-summary-stats_ecs_events-policy.arn}"
+  role       = "${aws_iam_role.data-portal-summary-stats_ecs_events.id}"
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_events_attach2" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+  role       = "${aws_iam_role.data-portal-summary-stats_ecs_events.id}"
+}
 
 /*
 ??
 */
 resource "aws_iam_role" "data-portal-summary-stats-task-performer" {
-  name = "${var.app_name}-${var.deployment_stage}"
+  name = "data-portal-summary-stats-task-performer"
   tags = "${local.common_tags}"
   assume_role_policy = <<EOF
 {
@@ -253,9 +156,10 @@ resource "aws_iam_role" "data-portal-summary-stats-task-performer" {
 EOF
 }
 
-resource "aws_iam_role_policy" "data-portal-summary-stats-task-performer" {
-  name = "${var.app_name}-${var.deployment_stage}"
-  role = "${aws_iam_role.data-portal-summary-stats-task-performer.id}"
+resource "aws_iam_policy" "data-portal-summary-stats-task-performer-policy" {
+  name = "data-portal-summary-stats-task-performer-policy"
+  description = "Perform task"
+
   policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -271,25 +175,66 @@ resource "aws_iam_role_policy" "data-portal-summary-stats-task-performer" {
       "Resource": "*"
     },
     {
+      "Effect": "Allow",
+      "Action":[
+        "logs:FilterLogEvents",
+        "logs:GetLogEvents",
+        "logs:GetQueryResults",
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams",
+        "logs:GetLogRecord",
+        "logs:StartQuery",
+        "logs:StopQuery"
+      ],
+      "Resource": "arn:aws:logs:*:*:*"
+    },
+    {
       "Effect": "Allow" ,
       "Action": [
+        "ecs:CreateCluster",
+        "ecs:DeregisterContainerInstance",
+        "ecs:DiscoverPollEndpoint",
+        "ecs:Poll",
+        "ecs:RegisterContainerInstance",
+        "ecs:StartTelemetrySession",
+        "ecs:Submit*",
         "ecs:ListTasks"
       ],
       "Resource": "*"
+    },
+    {
+      "Sid": "VisualEditor0",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::*"
+    },
+    {
+      "Sid": "VisualEditor1",
+      "Effect": "Allow",
+      "Action": [
+          "s3:PutObject",
+          "s3:GetObject"
+      ],
+      "Resource": "arn:aws:s3:::*/*"
     }
   ]
 }
 EOF
 }
 
+resource "aws_iam_role_policy_attachment" "task-performer-attach" {
+  policy_arn = "${aws_iam_policy.data-portal-summary-stats-task-performer-policy.arn}"
+  role = "${aws_iam_role.data-portal-summary-stats-task-performer.id}"
+}
+
 resource "aws_ecs_task_definition" "dpss_ecs_task_definition" {
-  family = "data-portal-summary-stats-${var.deployment_stage}"
-  execution_role_arn       = "${data.aws_iam_role.ecs_task_execution_role.arn}"
-  task_role_arn            = "${aws_iam_role.data-portal-summary-stats-role-tf.arn}"
+  family = "${var.app_name}-${var.deployment_stage}"
+  execution_role_arn       = "${aws_iam_role.data-portal-summary-stats_ecs_events.arn}"
+  task_role_arn            = "${aws_iam_role.data-portal-summary-stats-task-performer.arn}"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  cpu                      = "2048"
-  memory                   = "16384"
+  cpu                      = var.dpss_task_cpu
+  memory                   = var.dpss_task_memory
   tags                     = "${local.common_tags}"
   container_definitions    = <<DEFINITION
 [
@@ -301,7 +246,7 @@ resource "aws_ecs_task_definition" "dpss_ecs_task_definition" {
     "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/ecs/${var.app_name}-${var.deployment_stage}",
+          "awslogs-group": "${aws_cloudwatch_log_group.task-execution.name}",
           "awslogs-region": "${var.region}",
           "awslogs-stream-prefix": "ecs"
         }
@@ -327,7 +272,7 @@ resource "aws_cloudwatch_event_rule" "dpss-scheduler" {
   name                = "dpss-trigger-${var.deployment_stage}"
   description         = "Schedule to run data-portal-summary-stats"
   tags                = "${local.common_tags}"
-  schedule_expression = "cron(1/5 * * * ? *)"
+  schedule_expression = "rate(5 minutes)"
 }
 
 resource "aws_cloudwatch_event_target" "scheduled_task" {
@@ -352,10 +297,12 @@ resource "aws_cloudwatch_event_target" "scheduled_task" {
 {
   "containerOverrides": [
     {
-      "command": ["--environ","dev",
-                  "--source","canned",
-                  "--blacklist","false",
-                  "--min_gene_count","300"]
+      "command": [
+        "--environ","dev",
+        "--source","canned",
+        "--blacklist","false",
+        "--min_gene_count","300"
+      ]
     }
   ]
 }
@@ -364,5 +311,5 @@ DOC
 
 resource "aws_cloudwatch_log_group" "task-execution" {
   name              = "/ecs/${var.app_name}-${var.deployment_stage}"
-  retention_in_days = 1827
+  retention_in_days = 1827  // that's 5 years
 }
