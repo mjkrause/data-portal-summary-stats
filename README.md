@@ -1,7 +1,8 @@
 # data-portal-summary-stats
 
 The service generates per-project summary figures. The service updates daily by running 
-a Docker container on AWS Fargate. The general architecture is as follows:
+a Docker container on AWS Fargate. Figures are persisted on AWS S3. The general
+architecture is as follows:
 
 [](spec_v3.png)
  
