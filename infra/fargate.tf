@@ -10,19 +10,12 @@ provider "aws" {
 }
 
 data "aws_caller_identity" "current"{}
-data "aws_region" "current" {}
 
-//data "aws_vpc" "default" {
-//  default = true
-//}
+data "aws_region" "current" {}
 
 data "aws_vpc" "data-portal-summary-stats" {
   id = var.dpss_vpc_id
 }
-
-//data "aws_iam_role" "ecs_task_execution_role" {
-//  name = "ecsTaskExecutionRole"
-//}
 
 // Fetch AZs in current region.
 data "aws_availability_zones" "available" {}
@@ -31,13 +24,6 @@ data "aws_subnet" "default" {
   vpc_id = "${data.aws_vpc.data-portal-summary-stats.id}"
   cidr_block = "10.0.1.0/24"
 }
-
-//data "aws_subnet" "default" {
-//  count = 2
-//  vpc_id = "${data.aws_vpc.default.id}"
-//  availability_zone = "${data.aws_availability_zones.available.names[count.index]}"
-//  default_for_az = true
-//}
 
 data "aws_ecs_cluster" "default"{
   cluster_name = var.app_name
@@ -59,7 +45,7 @@ those the policies to the roles.
 */
 
 /*
-Policy and role for ECS events
+Role and policy for ECS events.
 */
 resource "aws_iam_role" "data-portal-summary-stats-ecs-events" {
   name = "data-portal-summary-stats_ecs_events"
@@ -136,13 +122,14 @@ resource "aws_iam_role_policy_attachment" "ecs-events-attach2" {
   role       = "${aws_iam_role.data-portal-summary-stats-ecs-events.id}"
 }
 
+// This attachment is required to pull the container from ECR.
 resource "aws_iam_role_policy_attachment" "ecs-events-attach3" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceEventsRole"
   role = "${aws_iam_role.data-portal-summary-stats-ecs-events.id}"
 }
 
 /*
-??
+Role and policies for the task performer.
 */
 resource "aws_iam_role" "data-portal-summary-stats-task-performer" {
   name = "data-portal-summary-stats-task-performer"
@@ -231,6 +218,7 @@ resource "aws_iam_policy" "data-portal-summary-stats-task-performer-policy" {
 EOF
 }
 
+// Attached policies to role.
 resource "aws_iam_role_policy_attachment" "task-performer-attach" {
   policy_arn = "${aws_iam_policy.data-portal-summary-stats-task-performer-policy.arn}"
   role = "${aws_iam_role.data-portal-summary-stats-task-performer.id}"
@@ -245,6 +233,7 @@ resource "aws_ecs_task_definition" "dpss_ecs_task_definition" {
   cpu                      = var.dpss_task_cpu
   memory                   = var.dpss_task_memory
   tags                     = "${local.common_tags}"
+
   container_definitions    = <<DEFINITION
 [
   {
