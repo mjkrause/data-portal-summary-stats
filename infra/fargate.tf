@@ -233,8 +233,8 @@ resource "aws_ecs_task_definition" "dpss_ecs_task_definition" {
   container_definitions    = <<DEFINITION
 [
   {
-    "family": "data-portal-summary-stats",
-    "name": "data-portal-summary-stats",
+    "family": "${var.app_name}",
+    "name": "${var.app_name}",
     "image": "${var.ecr_path}${var.image_name}:${var.image_tag}",
     "essential": true,
     "logConfiguration": {
@@ -254,8 +254,7 @@ resource "aws_ecs_task_definition" "dpss_ecs_task_definition" {
           "false",
           "--min_gene_count",
           "1200"
-     ],
-    "name": "${var.app_name}"
+     ]
   }
 ]
 DEFINITION
@@ -271,9 +270,9 @@ resource "aws_cloudwatch_event_rule" "dpss-scheduler" {
 
 resource "aws_cloudwatch_event_target" "scheduled_task" {
   target_id = "run-scheduled-dpss-task-every-24h"
-  arn = "${data.aws_ecs_cluster.default.arn}"
-  rule = "${aws_cloudwatch_event_rule.dpss-scheduler.name}"
-  role_arn = "${aws_iam_role.data-portal-summary-stats-ecs-events.arn}"
+  arn       = "${data.aws_ecs_cluster.default.arn}"
+  rule      = "${aws_cloudwatch_event_rule.dpss-scheduler.name}"
+  role_arn  = "${aws_iam_role.data-portal-summary-stats-ecs-events.arn}"
 
   ecs_target {
       task_count          = 1
@@ -284,14 +283,14 @@ resource "aws_cloudwatch_event_target" "scheduled_task" {
       network_configuration {
         assign_public_ip  = true
         subnets           = "${data.aws_subnet.default.*.id}"
-        security_groups = ["${var.dpss_security_group_id}"]
+        security_groups   = ["${var.dpss_security_group_id}"]
       }
-    }
+  }
   input = <<DOC
 {
   "containerOverrides": [
     {
-      "name": "data-portal-summary-stats",
+      "name": "${var.app_name}",
       "command": [
         "--environ","dev",
         "--source","canned",

@@ -1,5 +1,12 @@
 # data-portal-summary-stats
 
+The service generates per-project summary figures. The service updates daily by running 
+a Docker container on AWS Fargate. The general architecture is as follows:
+
+[](spec_v3.png)
+ 
+
+## Build Docker container
 To build a Docker container that runs `data-portal-summary-stats` create a directory that you
 name for instance `build`, then copy all relevant files from the project root into `build`:
 ```bash
@@ -16,7 +23,7 @@ name for instance `build`, then copy all relevant files from the project root in
 1 directory, 7 files
 ```
 
-## Build Docker container
+
 Docker commands need to be run in sudo mode for security reasons. You can avoid this by adding
  the user to the docker group, see [here](https://linoxide.com/linux-how-to/use-docker-without-sudo-ubuntu/))
  Next navigate to the `build` directory, prepared as explained in the previous paragraph, and
