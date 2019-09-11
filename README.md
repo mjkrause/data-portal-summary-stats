@@ -19,7 +19,7 @@ security reasons. You can avoid this by adding the user to the `docker` group
 The service runs on AWS. Install the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-linux.html)
  and have your credentials and configuration files in `~/.aws`. Authentication and access is 
  role-based. Prior to executing commands  in a new shell using the AWS CLI set 
- `export AWS_DEFAULT_PROFILE=my-profile`, where `my-profile` is the profile with the role. 
+ `export AWS_DEFAULT_PROFILE=my-profile`, where `my-profile` is the role profile. 
 
 #### Installation and configuration of Terraform
 This app uses the infrastructure management software [Terraform](https://learn.hashicorp.com/terraform/getting-started/install.html).
@@ -29,15 +29,19 @@ anywhere. In the directory `infra` run `terraform init` to create the Terraform 
 Next, create a file `variables.tf` which contains all required variables. This table contains
 a list of required variable names and their recommended values (all values are of type _String_).
  
-
 | Variable | Description | Value |
 | --- | --- | --- |
 | `dpss_task_memory` | RAM allocated to the container instance [GB] | "16384" |
 | `dpss_task_cpu` | Number of CPU units (1024 is equivalent to 1 core)| "2048" |
 
+## Running the service
 
+Once all required software is install, the basic steps to start the service are
+1. build the Docker image
+2. push the image to the AWS ECR registry
+3. start the service using the Terraform
 
-### Build the Docker image
+### 1. Build the Docker image
 To build the Docker image `data-portal-summary-stats` create a new directory (e.g., `build`), 
 then copy only the relevant files from the project root into `build`,
 such that the tree of `build` looks like so:
@@ -93,7 +97,7 @@ docker run -v /home/user1/.aws:/root/.aws -e AWS_DEFAULT_PROFILE=my-profile \
        --environ dev --source fresh --blacklist true --min_gene_count 1200
 ```
 
-### Push the image to AWS ECR
+### 2. Push the image to AWS ECR
 Push the image you just created to [ECR](https://aws.amazon.com/ecr/), AWS's image registry. Before
 pushing the image [create a repository](https://console.aws.amazon.com/ecr/repositories) for 
 your images using the AWS console. Be sure to give that repository the same name as the image.
@@ -116,7 +120,7 @@ Next push image to the repository to the created namespace.
 docker push <your ARN>.dkr.ecr.us-east-1.amazonaws.com/data-portal-summary-stats:<tag>
 ```
 
-### Deploy the service
+### 3. Deploy the service
 We use AWS's ECS container orchestration service to run the container. To deploy it we use 
 Terraform. Navigate to `infra` from the project root, then run 
 ```bash
@@ -125,7 +129,7 @@ export AWS_PROFILE=your-profile
 followed by `terraform plan`, followed by `terraform apply` to deploy the infrastructure. This sets
 up a `Scheduled Task`
 
-### Handling of large matrix files
+## Handling of large matrix files
 Depending on some parameters the matrix files of some projects are too large to process for even the largest available ECS 
 container instance (e.g., we found that a matrix file of > 2 GB cannot be processed). We offer
  two solutions to this problem. 
