@@ -73,7 +73,7 @@ listed explicitly (default values are in bold):
 | --- | --- | --- |
 | `--environ` | **dev**, integration, staging, prod | Deployment environment from which matrix data are requested to create summary statistics. |
 | `--source` | **fresh**, canned | Source of matrix files. "fresh" denotes requesting matrix files from the matrix service. "canned" denotes downloading already created matrix files from AWS S3. |
-| `--blacklist` | **false**, true | Skip files with project IDs listed in a file named "blacklist" during processing.
+| `--blacklist` | **false**, true | If true, skip files with project IDs listed in a file named "blacklist" during processing (see below).
 | `--min_gene_count` | integer between 300 and 2000| This value is part of the included filter when requesting a matrix file, and denotes the minimum count of detected genes for an element of the matrix to be included. |
 
 For more information on the last argument `--min_gene_count` [go the Matrix Service Swagger UI](https://matrix.staging.data.humancellatlas.org/)
@@ -88,8 +88,9 @@ This describes how to run the images as a container on your local system. The co
  subdirectory as a volume inside the container, and set the environment variable with the default 
  profile like so:
 ```bash
-docker run -v /home/michael/.aws:/root/.aws -e AWS_DEFAULT_PROFILE=my-profile \
-       data-portal-summary-stats:<tag #> --environ dev --source fresh --blacklist true --min_gene_count 1200
+docker run -v /home/user1/.aws:/root/.aws -e AWS_DEFAULT_PROFILE=my-profile \
+       data-portal-summary-stats:<tag #> \ 
+       --environ dev --source fresh --blacklist true --min_gene_count 1200
 ```
 
 ### Push the image to AWS ECR
@@ -115,9 +116,9 @@ Next push image to the repository to the created namespace.
 docker push <your ARN>.dkr.ecr.us-east-1.amazonaws.com/data-portal-summary-stats:<tag>
 ```
 
-
 ### Deploy the service
-To deploy with Terraform navigate to `infra` from the project root, then run 
+We use AWS's ECS container orchestration service to run the container. To deploy it we use 
+Terraform. Navigate to `infra` from the project root, then run 
 ```bash
 export AWS_PROFILE=your-profile
 ```
