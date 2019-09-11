@@ -133,8 +133,9 @@ Terraform. Navigate to `infra` from the project root, then run
 ```bash
 export AWS_PROFILE=your-profile
 ```
-followed by `terraform plan`, followed by `terraform apply` to deploy the infrastructure. This sets
-up a `Scheduled Task`
+Optionally, run `terraform plan` if you want to inspect what resources will be created. To deploy
+the infrastructure and start the service run `terraform apply`. Once complete, the service will
+create a set of figures containing summary statistics every 24 hours.
 
 ## Handling of large matrix files
 Depending on some parameters the matrix files of some projects are too large to process for even the largest available ECS 
