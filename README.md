@@ -26,11 +26,16 @@ This app uses the infrastructure management software [Terraform](https://learn.h
  Download the executable (version 0.12 
 or higher) into a directory that is part of the system's Linux `$PATH` so you can execute it 
 anywhere. In the directory `infra` run `terraform init` to create the Terraform backend. 
-Next, create a file `variables.tf` which contains all required variables. This table contains
-a list of required variable names and their recommended values (all values are of type _String_).
+Next, create a file `variables.tf` which contains all required variables. The following table 
+contains a list of required variable names and their recommended values 
+(all values are of type _String_).
  
 | Variable | Description | Value |
 | --- | --- | --- |
+| `deployment_stage` | Deployment stage | "dev", "integration", "staging", or "prod" |
+| `app_name` | Name of the service | "data-portal-summary-stats" |
+| `image_name` | Name of the Docker image | "data-portal-summary-stats" |
+| `image_tag` | Version of the image | e.g., "0.8.8" |
 | `dpss_task_memory` | RAM allocated to the container instance [GB] | "16384" |
 | `dpss_task_cpu` | Number of CPU units (1024 is equivalent to 1 core)| "2048" |
 
