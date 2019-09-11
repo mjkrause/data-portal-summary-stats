@@ -37,9 +37,11 @@ a list of required variable names and their recommended values (all values are o
 ## Running the service
 
 Once all required software is install, the basic steps to start the service are
-1. build the Docker image
-2. push the image to the AWS ECR registry
-3. start the service using the Terraform
+1. Build the Docker image
+2. Push the image to the AWS registry
+3. Deploy the service using the Terraform
+
+In the following we give detailed instructions for each individual step.
 
 ### 1. Build the Docker image
 To build the Docker image `data-portal-summary-stats` create a new directory (e.g., `build`), 
