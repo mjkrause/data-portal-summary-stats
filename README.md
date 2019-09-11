@@ -6,6 +6,15 @@ architecture is as follows:
 
 ![](./illustrations/spec_v4.png)
 
+### Summary statistics figures generated
+
+1. 
+2. 
+.
+.
+.
+(TBD)
+
 ## Set-up
 The code is written for Python version 3.6. Clone the repository to your local system and 
 navigate into the `data-portal-summary-stats` directory. Create a virtual environment
