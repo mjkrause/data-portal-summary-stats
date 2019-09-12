@@ -2,16 +2,18 @@ terraform {
   required_version = ">=0.12"
 }
 
+data "aws_caller_identity" "current"{}
+data "aws_region" "current" {}
 provider "aws" {
-  assume_role {
-    role_arn = var.role_arn
-  }
-  region = var.region
+  region =
 }
 
-data "aws_caller_identity" "current"{}
-
-data "aws_region" "current" {}
+//provider "aws" {
+//  assume_role {
+//    role_arn = data.aws_caller_identity.current.arn // var.role_arn
+//  }
+//  region = data.aws_region.current  // var.region
+//}
 
 data "aws_vpc" "data-portal-summary-stats" {
   id = var.dpss_vpc_id
@@ -94,7 +96,7 @@ resource "aws_iam_policy" "data-portal-summary-stats-ecs-events-policy" {
                 "iam:PassRole"
             ],
             "Resource": [
-                "arn:aws:iam::${var.acc_number}:role/ecsTaskExecutionRole"
+                "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecsTaskExecutionRole"
             ],
             "Condition": {
                 "StringLike": {
@@ -241,7 +243,7 @@ resource "aws_ecs_task_definition" "dpss_ecs_task_definition" {
         "logDriver": "awslogs",
         "options": {
           "awslogs-group": "${aws_cloudwatch_log_group.task-execution.name}",
-          "awslogs-region": "${var.region}",
+          "awslogs-region": "${data.aws_region.current}",
           "awslogs-stream-prefix": "ecs"
         }
     },
