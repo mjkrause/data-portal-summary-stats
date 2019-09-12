@@ -20,8 +20,8 @@ The code is written for Python version 3.6. Clone the repository to your local s
 navigate into the `data-portal-summary-stats` directory. Create a virtual environment
 and run `pip install -r requirements.txt` to install dependencies. You also need 
 [Docker](https://www.docker.com) (here
-we used version 18, Community Edition). Docker commands need to be run in sudo mode for 
-security reasons. You can avoid this by adding the user to the `docker` group 
+we used version 18, Community Edition). Docker commands need to be run as root (i.e., `sudo ...`). 
+You can avoid this by adding the user to the `docker` group 
 (see [here](https://linoxide.com/linux-how-to/use-docker-without-sudo-ubuntu/)). 
 
 #### Install AWS
