@@ -5,7 +5,7 @@
 # - No leading slash means the pattern matches at any depth.
 
 # Special files
-environment
+#./environment
 
 # Python files
 *.pyc

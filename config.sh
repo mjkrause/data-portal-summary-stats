@@ -27,6 +27,8 @@ declare -A keys=(
   ["cluster_name"]=$CLUSTER_NAME
   ["dpss_task_cpu"]=$DPSS_TASK_CPU
   ["dpss_task_memory"]=$DPSS_TASK_MEMORY
+  ["dpss_security_group_id"]=$SECURITY_GROUP_ACCOUNT_ID
+  ["dpss_vpc_id"]=$VPC_ID
 )
 
 VARS_TF=./infra/variables.tf

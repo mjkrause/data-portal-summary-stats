@@ -9,18 +9,18 @@ provider "aws" {
   region = var.region
 }
 
-
 data "aws_caller_identity" "current"{}
 data "aws_region" "current" {}
-
-data "aws_vpc" "data-portal-summary-stats" {
-  id = var.dpss_vpc_id
-}
 
 // Fetch AZs in current region.
 data "aws_availability_zones" "available" {}
 
-data "aws_subnet" "default" {
+// Virtual Private Cloud and subnets
+data "aws_vpc" "data-portal-summary-stats" {
+  id = var.dpss_vpc_id
+}
+
+data "aws_subnet" "dpss-sn" {
   vpc_id = "${data.aws_vpc.data-portal-summary-stats.id}"
   cidr_block = "10.0.1.0/24"
 }
@@ -282,8 +282,8 @@ resource "aws_cloudwatch_event_target" "scheduled_task" {
 
       network_configuration {
         assign_public_ip  = true
-        subnets           = "${data.aws_subnet.default.*.id}"
-        security_groups   = ["${var.dpss_security_group_id}"]
+        subnets = "${data.aws_subnet.dpss-sn.*.id}"
+        security_groups = ["${var.dpss_security_group_id}"]
       }
   }
   input = <<DOC
