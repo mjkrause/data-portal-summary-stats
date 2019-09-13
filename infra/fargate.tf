@@ -2,18 +2,16 @@ terraform {
   required_version = ">=0.12"
 }
 
-data "aws_caller_identity" "current"{}
-data "aws_region" "current" {}
 provider "aws" {
-  region =
+  assume_role {
+    role_arn = var.role_arn
+  }
+  region = var.region
 }
 
-//provider "aws" {
-//  assume_role {
-//    role_arn = data.aws_caller_identity.current.arn // var.role_arn
-//  }
-//  region = data.aws_region.current  // var.region
-//}
+
+data "aws_caller_identity" "current"{}
+data "aws_region" "current" {}
 
 data "aws_vpc" "data-portal-summary-stats" {
   id = var.dpss_vpc_id
@@ -27,13 +25,13 @@ data "aws_subnet" "default" {
   cidr_block = "10.0.1.0/24"
 }
 
-data "aws_ecs_cluster" "default"{
-  cluster_name = var.app_name
+resource "aws_ecs_cluster" "dpss-cluster"{
+  name = var.cluster_name
 }
 
 locals {
   common_tags = "${map(
-    "managedBy"       , "terraform"
+    "managedBy" , "terraform"
   )}"
 }
 
@@ -86,7 +84,7 @@ resource "aws_iam_policy" "data-portal-summary-stats-ecs-events-policy" {
             ],
             "Condition": {
                 "ArnLike": {
-                     "ecs:cluster": "${data.aws_ecs_cluster.default.arn}"
+                     "ecs:cluster": "${aws_ecs_cluster.dpss-cluster.arn}"
                 }
             }
         },
@@ -243,7 +241,7 @@ resource "aws_ecs_task_definition" "dpss_ecs_task_definition" {
         "logDriver": "awslogs",
         "options": {
           "awslogs-group": "${aws_cloudwatch_log_group.task-execution.name}",
-          "awslogs-region": "${data.aws_region.current}",
+          "awslogs-region": "${var.region}",
           "awslogs-stream-prefix": "ecs"
         }
     },
@@ -272,7 +270,7 @@ resource "aws_cloudwatch_event_rule" "dpss-scheduler" {
 
 resource "aws_cloudwatch_event_target" "scheduled_task" {
   target_id = "run-scheduled-dpss-task-every-24h"
-  arn       = "${data.aws_ecs_cluster.default.arn}"
+  arn       = "${aws_ecs_cluster.dpss-cluster.arn}"
   rule      = "${aws_cloudwatch_event_rule.dpss-scheduler.name}"
   role_arn  = "${aws_iam_role.data-portal-summary-stats-ecs-events.arn}"
 

@@ -16,10 +16,10 @@ architecture is as follows:
 (TBD)
 
 ## Set-up
-The code is written for Python version 3.6. Clone the repository to your local system and 
-navigate into the `data-portal-summary-stats` directory. Create a virtual environment
-and run `pip install -r requirements.txt` to install dependencies. You also need 
-[Docker](https://www.docker.com) (here
+_data-portal-summary-stats_ is written for Python version 3.6. Clone the repository to your 
+local system and navigate into the `data-portal-summary-stats` directory. Create a 
+virtual environment and run `pip install -r requirements.txt` to install dependencies. You 
+also need [Docker](https://www.docker.com) (here
 we used version 18, Community Edition). Docker commands need to be run as root (i.e., `sudo ...`). 
 You can avoid this by adding the user to the `docker` group 
 (see [here](https://linoxide.com/linux-how-to/use-docker-without-sudo-ubuntu/)). 
@@ -47,6 +47,8 @@ contains a list of required variable names and their recommended values
 | `image_tag` | Version of the image | e.g., "0.8.8" |
 | `dpss_task_memory` | RAM allocated to the container instance [GB] | "16384" |
 | `dpss_task_cpu` | Number of CPU units (1024 is equivalent to 1 core)| "2048" |
+
+
 
 ## Running the service
 
@@ -137,17 +139,21 @@ docker push <your ARN>.dkr.ecr.us-east-1.amazonaws.com/data-portal-summary-stats
 ```
 
 ### 3. Deploy the service
-We use AWS's ECS container orchestration service to run the container. To deploy it we use 
-Terraform. Navigate to `infra` from the project root, then run 
-```bash
-export AWS_PROFILE=your-profile
-```
-Optionally, run `terraform plan` if you want to inspect what resources will be created. To deploy
-the infrastructure and start the service run `terraform apply`. Once complete, the service will
-create a set of figures containing summary statistics every 24 hours.
+We use AWS's ECS container orchestration service to run the container. To deploy the service 
+it we use Terraform. The main Terraform script `./infra/fargate.tf` relies on 
+`./infra/variables.tf`, which needs to be created first. 
+
+Be sure to have filled in all values in `environment`, then execute `./config.sh` from the project
+root (be sure utility [`jq`](https://stedolan.github.io/jq/) is installed). This writes 
+(or overwrites nqa) `./infra/variables.tf`. Once written, that file contains credentials 
+information!  Next, navigate to `infra` from the project root, then run 
+`terraform plan` if you want to inspect what resources will be created. Otherwise, deploy
+the infrastructure and start the service by running `terraform apply`. Once deployed, the 
+service runs on a schedule to create a set of summary statistics figures every 24 hours.
 
 ## Handling of large matrix files
-Depending on some parameters the matrix files of some projects are too large to process for even the largest available ECS 
+Depending on some parameters the matrix files of some projects are too large to process for even 
+the largest available ECS 
 container instance (e.g., we found that a matrix file of > 2 GB cannot be processed). We offer
  two solutions to this problem. 
  
