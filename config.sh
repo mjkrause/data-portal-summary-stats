@@ -31,7 +31,7 @@ declare -A keys=(
 
 VARS_TF=./infra/variables.tf
 if [[ -f "$VARS_TF" ]]; then
-    echo "$VARS_TF exist - overwriting it..."
+    echo "$VARS_TF exist - replacing it..."
     rm $VARS_TF
 fi
 
