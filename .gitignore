@@ -4,6 +4,9 @@
 #
 # - No leading slash means the pattern matches at any depth.
 
+# Special files
+environment
+
 # Python files
 *.pyc
 __pycache__/

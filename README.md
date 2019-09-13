@@ -139,9 +139,9 @@ docker push <your ARN>.dkr.ecr.us-east-1.amazonaws.com/data-portal-summary-stats
 ```
 
 ### 3. Deploy the service
-We use AWS's ECS container orchestration service to run the container. To deploy the service 
-it we use Terraform. The main Terraform script `./infra/fargate.tf` relies on 
-`./infra/variables.tf`, which needs to be created first. 
+We use AWS's ECS container orchestration service to run the container. We use Terraform to 
+deploy the service. The main Terraform script, `./infra/fargate.tf`, relies on the script
+`./infra/variables.tf`, which needs to be created first prior to deploying. 
 
 Be sure to have filled in all values in `environment`, then execute `./config.sh` from the project
 root (be sure utility [`jq`](https://stedolan.github.io/jq/) is installed). This writes 
@@ -158,12 +158,12 @@ container instance (e.g., we found that a matrix file of > 2 GB cannot be proces
  two solutions to this problem. 
  
 The **first** and preferred solution aims to
- process all matrices by choosing a combination of RAM and a setting a suitable 
- value for the input
- argument `--min_gene_count`. The following figure shows results of some tests we ran using
- a matrix of project _Census of Immune Cells_ on September 4, 2019, which was the project with 
- the largest matrix file in the HCA on that day. The blue area denotes processing failures, and the 
- orange area denotes processing successes:
+ process all matrices by choosing a combination of sufficient RAM and setting 
+  input argument `--min_gene_count` to a suitable value. The following figure shows results 
+  of some tests we ran using
+ a matrix of project _Census of Immune Cells_ from September 4, 2019, which was the project with 
+ the largest matrix file in the HCA on that day. The orange area denotes successful processing 
+ and the blue area denotes failed processing:
   
   ![tests](./illustrations/large-file-experiment_figure.png)
   
