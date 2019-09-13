@@ -41,12 +41,4 @@ do
   printf "variable \"$val\" {\n  default = \"${keys[$val]}\" \n}\n\n" >> $VARS_TF
 done
 
-KEY="dpss_security_group_id"
-VAL="sg-095dc7a781d1d6744"
-printf "variable \"$KEY\" {\n  default = \"$VAL\" \n}\n\n" >> $VARS_TF
-
-KEY="dpss_vpc_id"
-VAL="vpc-0b94af0287c8aff49"
-printf "variable \"$KEY\" {\n  default = \"$VAL\" \n}\n\n" >> $VARS_TF
-
 echo "Wrote Terraform configuration to file $VARS_TF"
