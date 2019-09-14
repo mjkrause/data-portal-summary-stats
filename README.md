@@ -140,10 +140,10 @@ docker push <your ARN>.dkr.ecr.us-east-1.amazonaws.com/data-portal-summary-stats
 ```
 
 ### 3. Deploy the service
-We use AWS's ECS container orchestration service to run the container. We use Terraform to 
-deploy the service. The main Terraform script, `./infra/fargate.tf`, relies on the script
-`./infra/variables.tf`, which needs to be created first prior to deployment by running 
-`./config.sh` (be sure utility [`jq`](https://stedolan.github.io/jq/) is installed). Be sure 
+We use AWS's ECS container orchestration service to run the container as a _task_ and Terraform to 
+deploy and manage the service. The main Terraform script, `./infra/fargate.tf`, relies on 
+the script `./infra/variables.tf`, which needs to be created prior to deployment by running 
+`./config.sh` (requires the utility [`jq`](https://stedolan.github.io/jq/)). Be sure 
 to have filled in all values in `environment` (as described above), then execute 
 the following commands from the project root:
 
