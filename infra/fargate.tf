@@ -295,8 +295,8 @@ resource "aws_cloudwatch_event_target" "scheduled_task" {
     {
       "name": "${var.app_name}",
       "command": [
-        "--environ", "${var.deployment_stage}"
-        "--source","${var.source}"",
+        "--environ", "${var.deployment_stage}",
+        "--source","${var.matrix_source}",
         "--blacklist","${var.blacklist}",
         "--min_gene_count","${var.min_gene_count}"
       ]
