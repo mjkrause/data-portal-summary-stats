@@ -1,28 +1,25 @@
 # data-portal-summary-stats
 
-The service generates per-project summary figures. The service updates daily by running 
-a Docker container on AWS Fargate. Figures are persisted on AWS S3. The general
-architecture is as follows:
+The service generates the following per-project summary figures:
+
+1. List of top 20 genes with the highest expression variability.
+2. 
+ 
+The service updates daily by running a Docker container on AWS Fargate. Figures are persisted 
+on AWS S3. The general architecture is as follows:
 
 ![](./illustrations/spec_v4.png)
 
-### Summary statistics figures generated
-
-1. 
-2. 
-.
-.
-.
-(TBD)
-
 ## Set-up
-_data-portal-summary-stats_ is written for Python version 3.6. Clone the repository to your 
-local system and navigate into the `data-portal-summary-stats` directory. Create a 
-virtual environment and run `pip install -r requirements.txt` to install dependencies. You 
-also need [Docker](https://www.docker.com) (here
-we used version 18, Community Edition). Docker commands need to be run as root (i.e., `sudo ...`). 
-You can avoid this by adding the user to the `docker` group 
-(see [here](https://linoxide.com/linux-how-to/use-docker-without-sudo-ubuntu/)). 
+_data-portal-summary-stats_ is written in Python version 3.6. Clone the repository to your 
+local system and navigate into the `data-portal-summary-stats` directory. If you wish to run code
+from source create a virtual environment and run `pip install -r requirements.txt` to install 
+dependencies. 
+But the intention is to run the code in a Docker container. So 
+[Docker](https://www.docker.com) (here
+we used version 18, Community Edition) needs to be installed on your system. Docker commands 
+need to be run as root (i.e., `sudo ...`). You can avoid this by adding the user to the 
+`docker` group (see [here](https://linoxide.com/linux-how-to/use-docker-without-sudo-ubuntu/)). 
 
 #### Install AWS
 The service runs on AWS. Install the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-linux.html)
@@ -35,20 +32,24 @@ This app uses the infrastructure management software [Terraform](https://learn.h
  Download the executable (version 0.12 
 or higher) into a directory that is part of the system's Linux `$PATH` so you can execute it 
 anywhere. In the directory `infra` run `terraform init` to create the Terraform backend. 
-Next, create a file `variables.tf` which contains all required variables. The following table 
-contains a list of required variable names and their recommended values 
-(all values are of type _String_).
+Next, enter all values in file `environment`. The following table 
+contains a list of ten (10) required variable names and recommended values for some:
  
 | Variable | Description | Value |
 | --- | --- | --- |
-| `deployment_stage` | Deployment stage | "dev", "integration", "staging", or "prod" |
-| `app_name` | Name of the service | "data-portal-summary-stats" |
-| `image_name` | Name of the Docker image | "data-portal-summary-stats" |
-| `image_tag` | Version of the image | e.g., "0.8.8" |
-| `dpss_task_memory` | RAM allocated to the container instance [GB] | "16384" |
-| `dpss_task_cpu` | Number of CPU units (1024 is equivalent to 1 core)| "2048" |
-
-
+| `AWS_DEFAULT_PROFILE` | The profile to authorize and start this service | |
+| `APP_NAME` | Name of the service | data-portal-summary-stats |
+| `IMAGE_NAME` | Name of the Docker image | "data-portal-summary-stats" |
+| `IMAGE_TAG` | Version of the image | e.g., 0.8.8 |
+| `DEPLOYMENT_STAGE` | See below _Input arguments to container..._ | e.g., dev|
+| `SOURCE` | See below _Input arguments to container..._ | e.g., canned |
+| `BLACKLIST` | See below _Input arguments to container..._ | e.g. false |
+| `MIN_GENE_COUNT` | See below _Input arguments to container..._ | e.g., 300 |
+| `CLUSTER_NAME ` | Name of the AWS cluster that runs the tasks | data-portal-summary-stats-fargate|
+| `DPSS_TASK_MEMORY` | RAM allocated to the container instance [GB] | 16384 |
+| `DPSS_TASK_CPU` | Number of CPU units (1024 is equivalent to 1 core)| 2048 |
+| `SECURITY_GROUP_ID` | AWS security group ID | |
+| `VPC_ID ` | AWS virtual private cloud ID | |
 
 ## Running the service
 
@@ -141,20 +142,29 @@ docker push <your ARN>.dkr.ecr.us-east-1.amazonaws.com/data-portal-summary-stats
 ### 3. Deploy the service
 We use AWS's ECS container orchestration service to run the container. We use Terraform to 
 deploy the service. The main Terraform script, `./infra/fargate.tf`, relies on the script
-`./infra/variables.tf`, which needs to be created first prior to deploying. 
+`./infra/variables.tf`, which needs to be created first prior to deployment by running 
+`./config.sh` (be sure utility [`jq`](https://stedolan.github.io/jq/) is installed). Be sure 
+to have filled in all values in `environment` (as described above), then execute 
+the following commands from the project root:
 
-Be sure to have filled in all values in `environment`, then execute `./config.sh` from the project
-root (be sure utility [`jq`](https://stedolan.github.io/jq/) is installed). This writes 
-(or overwrites nqa) `./infra/variables.tf`. Once written, that file contains credentials 
-information!  Next, navigate to `infra` from the project root, then run 
+```bash
+source environment
+export AWS_PROFILE=my-profile
+./config.sh
+```
+
+This writes (or replaces, no-questions-asked) `./infra/variables.tf`. Once written, that file 
+contains credentials information! Next, navigate to `infra` and run 
 `terraform plan` if you want to inspect what resources will be created. Otherwise, deploy
-the infrastructure and start the service by running `terraform apply`. Once deployed, the 
-service runs on a schedule to create a set of summary statistics figures every 24 hours.
+the infrastructure and start the service by running `terraform apply`. Follow the instruction
+on the screen. It should end on "Apply complete! Resources [...]". If you see that message the
+deployment process is complete. Once deployed, the service runs on a schedule to create a set of 
+summary statistics figures every 24 hours and can be monitored on AWS CloudWatch.
 
 ## Handling of large matrix files
 Depending on some parameters the matrix files of some projects are too large to process for even 
 the largest available ECS 
-container instance (e.g., we found that a matrix file of > 2 GB cannot be processed). We offer
+container instance (e.g., we found that a matrix file of > 2 GB size cannot be processed). We offer
  two solutions to this problem. 
  
 The **first** and preferred solution aims to
@@ -184,4 +194,4 @@ The **second** solution is to simply black-list the matrix files that are too la
  export AWS_DEFAULT_PROFILE=my_profile
  aws s3 cp blacklist s3://<deployment-env>.project-assets.remaining.url/ 
 ```
-where _deployment-env_ is the bucket name of the deployment environment.  
+where _deployment-env_ is the name of the S3 bucket in the deployment environment.  

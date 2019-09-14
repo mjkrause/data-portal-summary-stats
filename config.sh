@@ -24,10 +24,13 @@ declare -A keys=(
   ["image_name"]=$IMAGE_NAME
   ["image_tag"]=$IMAGE_TAG
   ["deployment_stage"]=$DEPLOYMENT_STAGE
+  ["source"]=$SOURCE
+  ["blacklist"]=$BLACKLIST
+  ["min_gene_count"]=$MIN_GENE_COUNT
   ["cluster_name"]=$CLUSTER_NAME
   ["dpss_task_cpu"]=$DPSS_TASK_CPU
   ["dpss_task_memory"]=$DPSS_TASK_MEMORY
-  ["dpss_security_group_id"]=$SECURITY_GROUP_ACCOUNT_ID
+  ["dpss_security_group_id"]=$SECURITY_GROUP_ID
   ["dpss_vpc_id"]=$VPC_ID
 )
 

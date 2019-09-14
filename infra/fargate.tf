@@ -253,7 +253,7 @@ resource "aws_ecs_task_definition" "dpss_ecs_task_definition" {
           "--blacklist",
           "false",
           "--min_gene_count",
-          "1200"
+          "1800"
      ]
   }
 ]
@@ -292,10 +292,10 @@ resource "aws_cloudwatch_event_target" "scheduled_task" {
     {
       "name": "${var.app_name}",
       "command": [
-        "--environ","dev",
-        "--source","canned",
+        "--environ", "${var.deployment_stage}"
+        "--source","fresh",
         "--blacklist","false",
-        "--min_gene_count","300"
+        "--min_gene_count","1200"
       ]
     }
   ]
