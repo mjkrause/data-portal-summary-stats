@@ -2,8 +2,8 @@
 
 The service generates the following per-project summary figures:
 
-1. List of top 20 genes with the highest expression variability.
-2. 
+1. List of genes with highest cell count
+2. List of top 20 genes with the highest expression variability
  
 The service updates daily by running a Docker container on AWS Fargate. Figures are persisted 
 on AWS S3. The general architecture is as follows:
@@ -33,7 +33,7 @@ This app uses the infrastructure management software [Terraform](https://learn.h
 or higher) into a directory that is part of the system's Linux `$PATH` so you can execute it 
 anywhere. In the directory `infra` run `terraform init` to create the Terraform backend. 
 Next, enter all values in file `environment`. The following table 
-contains a list of ten (10) required variable names and recommended values for some:
+contains a list of 13 required variable names and recommended values for some:
  
 | Variable | Description | Value |
 | --- | --- | --- |
