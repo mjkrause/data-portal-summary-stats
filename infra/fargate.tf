@@ -261,11 +261,14 @@ DEFINITION
 }
 
 // To run ECS scheduled tasks we need to use CloudWatch event rules...
+// "cron(1/2 * * * ? *)": every 2 min
+// "cron(0 0 * * ? *)": every day at midnight (region's timezone)
+// "rate(6 hours)": every 6 h, starting from invocation
 resource "aws_cloudwatch_event_rule" "dpss-scheduler" {
   name                = "dpss-trigger-${var.deployment_stage}"
   description         = "Schedule to run data-portal-summary-stats"
   tags                = "${local.common_tags}"
-  schedule_expression = "cron(1/2 * * * ? *)"
+  schedule_expression = "rate(6 hours)"
 }
 
 resource "aws_cloudwatch_event_target" "scheduled_task" {
