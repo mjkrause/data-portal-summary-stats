@@ -268,7 +268,7 @@ resource "aws_cloudwatch_event_rule" "dpss-scheduler" {
   name                = "dpss-trigger-${var.deployment_stage}"
   description         = "Schedule to run data-portal-summary-stats"
   tags                = "${local.common_tags}"
-  schedule_expression = "rate(6 hours)"
+  schedule_expression = "cron(30 2 * * ? *)"
 }
 
 resource "aws_cloudwatch_event_target" "scheduled_task" {
@@ -285,8 +285,8 @@ resource "aws_cloudwatch_event_target" "scheduled_task" {
 
       network_configuration {
         assign_public_ip  = true
-        subnets = "${data.aws_subnet.dpss-sn.*.id}"
-        security_groups = ["${var.dpss_security_group_id}"]
+        subnets           = "${data.aws_subnet.dpss-sn.*.id}"
+        security_groups   = ["${var.dpss_security_group_id}"]
       }
   }
   input = <<DOC
