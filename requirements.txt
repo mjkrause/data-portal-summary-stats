@@ -2,3 +2,5 @@ boto3==1.9.198
 requests==2.22.0
 scanpy==1.4.4.post1
 more-itertools==7.2.0
+python-igraph==0.7.1.post6
+louvain==0.6.1
