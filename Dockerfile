@@ -6,11 +6,8 @@ RUN mkdir /build/src
 
 WORKDIR /build
 
-COPY requirements.txt \
-     data_portal_summary_stats.py /build/
-
-COPY src/* /build/src/
-
+COPY . /build
+RUN sudo apt install build-essential libxml2-dev libglpk-dev libgmp3-dev libblas-dev liblapack-dev libarpack2-dev python-dev
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt
 
