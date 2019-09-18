@@ -206,8 +206,9 @@ class MatrixSummaryStats:
         sc.pl.highly_variable_genes(adata, save=figure_format, show=False)  # write to disk
 
         with warnings.catch_warnings():
-            # warnings.simplefilter('ignore', numba.errors.NumbaDeprecationWarning)
             warnings.simplefilter('ignore')
+            # see https://www.gitmemory.com/issue/lmcinnes/umap/252/505984440
+
             # 6. Figure: Principal components, PC2 against PC1
             sc.tl.pca(adata, svd_solver='arpack')
             sc.pl.pca(adata, color='CST3', show=False, save=figure_format)
