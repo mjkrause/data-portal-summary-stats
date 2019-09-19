@@ -165,6 +165,7 @@ class MatrixSummaryStats:
                     shutil.copyfileobj(source, target)
 
     def create_images(self) -> None:
+
         logger.info('Creating figures...')
         figure_format = '.png'
         logger.info(f'Figures saved in {figure_format} format.')
