@@ -17,9 +17,7 @@ from source create a virtual environment and run `pip install -r requirements.tx
 dependencies. 
 But the intention is to run the code in a Docker container. So 
 [Docker](https://www.docker.com) (here
-we used version 18, Community Edition) needs to be installed on your system. Docker commands 
-need to be run as root (i.e., `sudo ...`). You can avoid this by adding the user to the 
-`docker` group (see [here](https://linoxide.com/linux-how-to/use-docker-without-sudo-ubuntu/)). 
+we used version 18, Community Edition) needs to be installed on your system. 
 
 #### Install AWS
 The service runs on AWS. Install the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-linux.html)
