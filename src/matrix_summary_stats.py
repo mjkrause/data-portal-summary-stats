@@ -225,7 +225,7 @@ class MatrixSummaryStats:
 
             # 8. Figure: Ranks genes
             sc.tl.rank_genes_groups(adata, 'louvain', method='logreg')
-            sc.pl.rank_genes_groups(adata, n_genes=25, sharey=False, show=False, save=figure_format)
+            sc.pl.rank_genes_groups(adata, n_genes=10, sharey=False, show=False, save=figure_format)
 
     def upload_figs_to_s3(self) -> None:
         os.chdir(self.tmpdir.name)
