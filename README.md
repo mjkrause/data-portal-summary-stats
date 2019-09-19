@@ -18,7 +18,7 @@ dependencies.
 But the intention is to run the code in a Docker container. So 
 [Docker](https://www.docker.com) (here
 we used version 18, Community Edition) needs to be installed on your system. The application 
-runs on AWS and you need to have credentials configured for AWS. 
+uses AWS. Install AWS CLI and have the credentials configured for AWS. 
 
 #### Installation and configuration of Terraform
 This app uses the infrastructure management software 
@@ -64,17 +64,9 @@ where `tag #` denotes a version number of the build (e.g., `0.1`).
 
 Once the image is built on your local system run 
 `docker run data-portal-summary-stats:<tag #> -h` to 
-return the help message with a brief description of the arguments. Here they are
-listed explicitly (default values are in bold):
-
-| Argument | Values | Description |
-| --- | --- | --- |
-| `--environ` | **dev**, integration, staging, prod | Deployment environment from which matrix data are requested to create summary statistics. |
-| `--source` | **fresh**, canned | Source of matrix files. "fresh" denotes requesting matrix files from the matrix service. "canned" denotes downloading already created matrix files from AWS S3. |
-| `--blacklist` | **false**, true | If true, skip files with project IDs listed in a file named "blacklist" during processing (see below).
-| `--min_gene_count` | integer between 300 and 2000| This value is part of the included filter when requesting a matrix file, and denotes the minimum count of detected genes for an element of the matrix to be included. |
-
-For more information on the last argument `--min_gene_count` [go the Matrix Service Swagger UI](https://matrix.staging.data.humancellatlas.org/)
+return the help message with a brief description of the command line arguments. For more 
+information on the last argument, `--min_gene_count`, 
+[go the Matrix Service Swagger UI](https://matrix.staging.data.humancellatlas.org/)
 and exercise the endpoint `/v1/filters/{filter_name}` with `genes_detected` as `filter_name`.   
 
 #### Running the `data-portal-summary-stats` Docker container locally
@@ -86,7 +78,7 @@ This describes how to run the images as a container on your local system. The co
  subdirectory as a volume inside the container, and set the environment variable with the default 
  profile like so:
 ```bash
-docker run -v /home/user1/.aws:/root/.aws -e AWS_DEFAULT_PROFILE=my-profile \
+docker run -v $HOME/.aws:/root/.aws -e AWS_DEFAULT_PROFILE=my-profile \
        data-portal-summary-stats:<tag #> \ 
        --environ dev --source fresh --blacklist true --min_gene_count 1200
 ```
