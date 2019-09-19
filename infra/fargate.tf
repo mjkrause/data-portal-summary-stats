@@ -2,6 +2,14 @@ terraform {
   required_version = ">=0.12"
 }
 
+variable "app_name" {
+  default = "data-portal-summary-stats"
+}
+
+variable "image_name" {
+  default = "data-portal-summary-stats"
+}
+
 provider "aws" {
   assume_role {
     role_arn = var.role_arn

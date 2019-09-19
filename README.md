@@ -1,11 +1,11 @@
 # data-portal-summary-stats
 
-The service generates the following per-project summary figures:
+The application generates the following per-project summary figures:
 
 1. List of genes with highest cell count
 2. List of top 20 genes with the highest expression variability
  
-The service updates daily by running a Docker container on AWS Fargate. Figures are persisted 
+The application updates daily by running a Docker container on AWS Fargate. Figures are persisted 
 on AWS S3. The general architecture is as follows:
 
 ![](./illustrations/spec_v4.png)
@@ -17,44 +17,21 @@ from source create a virtual environment and run `pip install -r requirements.tx
 dependencies. 
 But the intention is to run the code in a Docker container. So 
 [Docker](https://www.docker.com) (here
-we used version 18, Community Edition) needs to be installed on your system. 
-
-#### Install AWS
-The service runs on AWS. Install the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-linux.html)
- and have your credentials and configuration files in `~/.aws`. Authentication and access is 
- role-based. Prior to executing commands  in a new shell using the AWS CLI set 
- `export AWS_DEFAULT_PROFILE=my-profile`, where `my-profile` is the role profile. 
+we used version 18, Community Edition) needs to be installed on your system. The application 
+runs on AWS and you need to have credentials configured for AWS. 
 
 #### Installation and configuration of Terraform
-This app uses the infrastructure management software [Terraform](https://learn.hashicorp.com/terraform/getting-started/install.html).
- Download the executable (version 0.12 
-or higher) into a directory that is part of the system's Linux `$PATH` so you can execute it 
-anywhere. In the directory `infra` run `terraform init` to create the Terraform backend. 
-Next, enter all values in file `environment`. The following table 
-contains a list of 13 required variable names and recommended values for some:
- 
-| Variable | Description | Value |
-| --- | --- | --- |
-| `AWS_DEFAULT_PROFILE` | The profile to authorize and start this service | |
-| `APP_NAME` | Name of the service | data-portal-summary-stats |
-| `IMAGE_NAME` | Name of the Docker image | "data-portal-summary-stats" |
-| `IMAGE_TAG` | Version of the image | e.g., 0.8.8 |
-| `DEPLOYMENT_STAGE` | See below _Input arguments to container..._ | e.g., dev|
-| `SOURCE` | See below _Input arguments to container..._ | e.g., canned |
-| `BLACKLIST` | See below _Input arguments to container..._ | e.g. false |
-| `MIN_GENE_COUNT` | See below _Input arguments to container..._ | e.g., 300 |
-| `CLUSTER_NAME ` | Name of the AWS cluster that runs the tasks | data-portal-summary-stats-fargate|
-| `DPSS_TASK_MEMORY` | RAM allocated to the container instance [GB] | 16384 |
-| `DPSS_TASK_CPU` | Number of CPU units (1024 is equivalent to 1 core)| 2048 |
-| `SECURITY_GROUP_ID` | AWS security group ID | |
-| `VPC_ID ` | AWS virtual private cloud ID | |
+This app uses the infrastructure management software 
+[Terraform](https://learn.hashicorp.com/terraform/getting-started/install.html), version 0.12 
+or higher. In the directory `infra` run `terraform init` to create the Terraform backend. 
+Next, enter all values in file `environment`.
 
-## Running the service
+## Running the application
 
-Once all required software is install, the basic steps to start the service are
+Once all required software is installed, the basic steps to start the application are
 1. Build the Docker image
 2. Push the image to the AWS registry
-3. Deploy the service using the Terraform
+3. Deploy the application using the Terraform
 
 In the following we give detailed instructions for each individual step.
 
@@ -137,9 +114,9 @@ Next push image to the repository to the created namespace.
 docker push <your ARN>.dkr.ecr.us-east-1.amazonaws.com/data-portal-summary-stats:<tag>
 ```
 
-### 3. Deploy the service
+### 3. Deploy the application
 We use AWS's ECS container orchestration service to run the container as a _task_ and Terraform to 
-deploy and manage the service. The main Terraform script, `./infra/fargate.tf`, relies on 
+deploy and manage the application. The main Terraform script, `./infra/fargate.tf`, relies on 
 the script `./infra/variables.tf`, which needs to be created prior to deployment by running 
 `./config.sh` (requires the utility [`jq`](https://stedolan.github.io/jq/)). Be sure 
 to have filled in all values in `environment` (as described above), then execute 
@@ -154,9 +131,9 @@ export AWS_PROFILE=my-profile
 This writes (or replaces, no-questions-asked) `./infra/variables.tf`. Once written, that file 
 contains credentials information! Next, navigate to `infra` and run 
 `terraform plan` if you want to inspect what resources will be created. Otherwise, deploy
-the infrastructure and start the service by running `terraform apply`. Follow the instruction
+the infrastructure and start the application by running `terraform apply`. Follow the instruction
 on the screen. It should end on "Apply complete! Resources [...]". If you see that message the
-deployment process is complete. Once deployed, the service runs on a schedule to create a set of 
+deployment process is complete. Once deployed, the application runs on a schedule to create a set of 
 summary statistics figures every 24 hours and can be monitored on AWS CloudWatch.
 
 ## Handling of large matrix files
