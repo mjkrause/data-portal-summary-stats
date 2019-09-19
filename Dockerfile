@@ -5,5 +5,4 @@ WORKDIR /build
 COPY . /build
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt
-# Run the following script when container launches.
 ENTRYPOINT [ "python", "./data_portal_summary_stats.py"]
