@@ -1,13 +1,23 @@
-AWS_DEFAULT_PROFILE=""
-APP_NAME=data-portal-summary-stats
-IMAGE_NAME=data-portal-summary-stats
-IMAGE_TAG=
-DEPLOYMENT_STAGE=dev
-MATRIX_SOURCE=canned
-BLACKLIST=false
-MIN_GENE_COUNT=1200
-CLUSTER_NAME=data-portal-summary-stats-fargate
-DPSS_TASK_CPU=
-DPSS_TASK_MEMORY=
-SECURITY_GROUP_ID=
-VPC_ID=
+# Tag of the Docker image
+TF_VAR_image_tag=
+
+# Command-line arguments to main module.
+TF_VAR_deployment_stage=
+TF_VAR_matrix_source=
+TF_VAR_blacklist=
+TF_VAR_min_gene_count=
+
+# Name of the AWS cluster that runs the tasks
+TF_VAR_cluster_name=data-portal-summary-stats-fargate
+
+# Number of CPU units (1024 is equivalent to 1 core).
+TF_VAR_dpss_task_cpu=
+
+# RAM allocated to the container instance [GB].
+TF_VAR_dpss_task_memory=
+
+# AWS security group ID.
+TF_VAR_security_group_id=
+
+# AWS virtual private cloud ID.
+TF_VAR_vpc_id=
