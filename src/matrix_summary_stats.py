@@ -168,7 +168,7 @@ class MatrixSummaryStats:
                     shutil.copyfileobj(source, target)
 
     def create_images(self) -> None:
-        # ToDo: parameterize..., and add violin plot
+
         logger.info('Creating figures...')
         figure_format = '.png'
         logger.info(f'Figures saved in {figure_format} format.')
