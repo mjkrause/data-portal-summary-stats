@@ -21,9 +21,6 @@ from src.utils import convert_size
 
 
 logger = logging.getLogger(__name__)
-ch = logging.StreamHandler(sys.stdout)  # console handler to output to stdout
-ch.setLevel(logging.INFO)
-logger.addHandler(ch)
 
 # See https://stackoverflow.com/questions/27147300/
 # matplotlib-tcl-asyncdelete-async-handler-deleted-by-the-wrong-thread
@@ -324,4 +321,3 @@ class MatrixSummaryStats:
             self.matrix_path = self.project_uuid + '.mtx'
         except ValueError:
             self.matrix_path = []
-

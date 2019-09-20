@@ -1,13 +1,50 @@
-AWS_DEFAULT_PROFILE=""
-APP_NAME=data-portal-summary-stats
-IMAGE_NAME=data-portal-summary-stats
-IMAGE_TAG=
-DEPLOYMENT_STAGE=dev
-MATRIX_SOURCE=canned
-BLACKLIST=false
-MIN_GENE_COUNT=1200
-CLUSTER_NAME=data-portal-summary-stats-fargate
-DPSS_TASK_CPU=
-DPSS_TASK_MEMORY=
-SECURITY_GROUP_ID=
-VPC_ID=
+# Amazon Web Services default profile:
+aws_default_profile=hca-id
+
+# Tag of the Docker image
+image_tag=
+
+# Deployment stage: {dev, integration, staging, or prod}:
+deployment_stage=
+
+# Source of the matrix file: {fresh, canned}:
+matrix_source=
+
+# To omit matrix files set to --blacklist, otherwise leave it blank:
+blacklist=
+
+# Integer between 300 and 2000:
+min_gene_count=
+
+# The name of the cluster the task runs in (as it will appear on AWS ECS):
+cluster_name=
+
+# Number of CPU units (1024 is equivalent to 1 core):
+dpss_task_cpu=
+
+# RAM allocated to the container instance [GB]:
+dpss_task_memory=
+
+# AWS security group ID:
+dpss_security_group_id=
+
+# AWS virtual private cloud ID.
+dpss_vpc_id=
+
+# Set AWS credentials:
+export AWS_DEFAULT_PROFILE=$aws_default_profile
+export AWS_PROFILE=$aws_default_profile
+
+# Set environment variables for Terraform:
+export TF_VAR_acc_number=$(aws sts get-caller-identity | jq -r .Account)
+export TF_VAR_aws_region=$(aws configure get region)
+export TF_VAR_image_tag=$image_tag
+export TF_VAR_deployment_stage=$deployment_stage
+export TF_VAR_matrix_source=$matrix_source
+export TF_VAR_blacklist=$blacklist
+export TF_VAR_min_gene_count=$min_gene_count
+export TF_VAR_cluster_name=$cluster_name
+export TF_VAR_dpss_task_cpu=$dpss_task_cpu
+export TF_VAR_dpss_task_memory=$dpss_task_memory
+export TF_VAR_dpss_security_group_id=$dpss_security_group_id
+export TF_VAR_dpss_vpc_id=$dpss_vpc_id

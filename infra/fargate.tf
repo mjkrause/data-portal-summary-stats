@@ -2,11 +2,32 @@ terraform {
   required_version = ">=0.12"
 }
 
+variable "app_name" {
+  default = "data-portal-summary-stats"
+}
+
+variable "image_name" {
+  default = "data-portal-summary-stats"
+}
+
+variable "acc_number" {}
+variable "aws_region" {}
+variable "image_tag" {}
+variable "deployment_stage" {}
+variable "matrix_source" {}
+variable "blacklist" {}
+variable "min_gene_count" {}
+variable "cluster_name" {}
+variable "dpss_task_cpu" {}
+variable "dpss_task_memory" {}
+variable "dpss_security_group_id" {}
+variable "dpss_vpc_id" {}
+
 provider "aws" {
   assume_role {
-    role_arn = var.role_arn
+    role_arn = "arn:aws:iam::${var.acc_number}:role/dcp-developer"
   }
-  region = var.region
+  region = "${var.aws_region}"
 }
 
 data "aws_caller_identity" "current"{}
@@ -17,7 +38,7 @@ data "aws_availability_zones" "available" {}
 
 // Virtual Private Cloud and subnets
 data "aws_vpc" "data-portal-summary-stats" {
-  id = var.dpss_vpc_id
+  id = "${var.dpss_vpc_id}"
 }
 
 data "aws_subnet" "dpss-sn" {
@@ -26,7 +47,7 @@ data "aws_subnet" "dpss-sn" {
 }
 
 resource "aws_ecs_cluster" "dpss-cluster"{
-  name = var.cluster_name
+  name = "${var.cluster_name}"
 }
 
 locals {
@@ -235,13 +256,13 @@ resource "aws_ecs_task_definition" "dpss_ecs_task_definition" {
   {
     "family": "${var.app_name}",
     "name": "${var.app_name}",
-    "image": "${var.ecr_path}${var.image_name}:${var.image_tag}",
+    "image": "${var.acc_number}.dkr.ecr.${var.aws_region}.amazonaws.com/${var.image_name}:${var.image_tag}",
     "essential": true,
     "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
           "awslogs-group": "${aws_cloudwatch_log_group.task-execution.name}",
-          "awslogs-region": "${var.region}",
+          "awslogs-region": "${var.aws_region}",
           "awslogs-stream-prefix": "ecs"
         }
     },
@@ -251,9 +272,8 @@ resource "aws_ecs_task_definition" "dpss_ecs_task_definition" {
           "--source",
           "canned",
           "--blacklist",
-          "false",
           "--min_gene_count",
-          "1800"
+          "1200"
      ]
   }
 ]
@@ -263,12 +283,13 @@ DEFINITION
 // To run ECS scheduled tasks we need to use CloudWatch event rules...
 // "cron(1/2 * * * ? *)": every 2 min
 // "cron(0 0 * * ? *)": every day at midnight (region's timezone)
+// "cron(30 2 * * ? *)": every day at 2:30 AM
 // "rate(6 hours)": every 6 h, starting from invocation
 resource "aws_cloudwatch_event_rule" "dpss-scheduler" {
   name                = "dpss-trigger-${var.deployment_stage}"
   description         = "Schedule to run data-portal-summary-stats"
   tags                = "${local.common_tags}"
-  schedule_expression = "cron(30 2 * * ? *)"
+  schedule_expression = "cron(1/2 * * * ? *)"
 }
 
 resource "aws_cloudwatch_event_target" "scheduled_task" {
@@ -297,7 +318,6 @@ resource "aws_cloudwatch_event_target" "scheduled_task" {
       "command": [
         "--environ", "${var.deployment_stage}",
         "--source","${var.matrix_source}",
-        "--blacklist","${var.blacklist}",
         "--min_gene_count","${var.min_gene_count}"
       ]
     }

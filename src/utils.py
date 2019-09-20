@@ -6,10 +6,10 @@ import boto3
 import logging
 
 logger = logging.getLogger(__name__)
-ch = logging.StreamHandler(sys.stdout)  # console handler to output to stdout
-ch.setLevel(logging.INFO)
-logger.addHandler(ch)
 
+
+# The following is adapted from
+# https://stackoverflow.com/questions/5194057/better-way-to-convert-file-sizes-in-python/14822210#14822210
 def convert_size(size_bytes: float) -> str:
     if size_bytes == 0:
         return "0 B"
