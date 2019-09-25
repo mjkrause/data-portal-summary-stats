@@ -4,6 +4,7 @@ import sys
 import math
 import boto3
 import logging
+from more_itertools import first
 
 logger = logging.getLogger(__name__)
 
@@ -38,3 +39,11 @@ def get_blacklist_from_s3(client: boto3.client, bucket: str, key: str) -> list:
     bytes_string = response['Body'].read()
 
     return bytes_string.decode().strip('\n').split('\n')
+
+
+def remove_extension(filename: str, ext: str) -> str:
+    """Removes one extension in a filename following character "."."""
+    assert '.' in filename
+
+    return first(filename.split(f'.{ext}'))
+
