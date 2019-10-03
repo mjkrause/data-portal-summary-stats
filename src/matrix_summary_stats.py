@@ -220,9 +220,25 @@ class MatrixSummaryStats:
             sc.tl.louvain(adata)
             sc.pl.umap(adata, color=['louvain', 'CST3'], show=False, save=figure_format)
 
+            # For Jing, Barcelona conference:
+            results_file = f'./{self.project_uuid}_clusters.txt'
+            df = pd.DataFrame(adata.obs['louvain'])
+            df.columns=['louvain cluster']
+            df.head(5)
+            df.to_csv(path_or_buf=results_file, sep='\t', index_label='cell')
+
             # 8. Figure: Ranks genes
-            sc.tl.rank_genes_groups(adata, 'louvain', method='logreg')
+            # Options for "method" in the following line are:
+            # {'logreg', 't-test', 'wilcoxon', 't-test_overestim_var'}
+            sc.tl.rank_genes_groups(adata, 'louvain', method='t-test')
             sc.pl.rank_genes_groups(adata, n_genes=10, sharey=False, show=False, save=figure_format)
+
+            # For Jing, Barcelona conference:
+            results_file = f'./{self.project_uuid}_marker_genes.txt'
+            df = pd.DataFrame(adata.uns['rank_genes_groups']['names'])
+            df.to_csv(path_or_buf=results_file, sep='\t')
+
+
 
     def upload_figs_to_s3(self) -> None:
         os.chdir(self.tmpdir.name)
