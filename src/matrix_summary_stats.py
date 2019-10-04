@@ -225,10 +225,11 @@ class MatrixSummaryStats:
             sc.pl.umap(adata, color=['louvain', 'CST3'], show=False, save=figure_format)
 
             # For Jing, Barcelona conference:
-            results_file = f'./{self.project_uuid}_clusters.txt'
+            logger.info('Writing cluster file for Jing / Barcelona')
+            results_dir = os.path.dirname(__file__)
+            results_file = f'{results_dir}/{self.project_uuid}_clusters.txt'
             df = pd.DataFrame(adata.obs['louvain'])
             df.columns=['louvain cluster']
-            df.head(5)
             df.to_csv(path_or_buf=results_file, sep='\t', index_label='cell')
 
             # 8. Figure: Ranks genes
@@ -238,11 +239,10 @@ class MatrixSummaryStats:
             sc.pl.rank_genes_groups(adata, n_genes=10, sharey=False, show=False, save=figure_format)
 
             # For Jing, Barcelona conference:
-            results_file = f'./{self.project_uuid}_marker_genes.txt'
+            logger.info('Writing gene rank file for Jing / Barcelona')
+            results_file = f'{results_dir}/{self.project_uuid}_marker_genes.txt'
             df = pd.DataFrame(adata.uns['rank_genes_groups']['names'])
             df.to_csv(path_or_buf=results_file, sep='\t')
-
-
 
     def upload_figs_to_s3(self) -> None:
         os.chdir(self.tmpdir.name)
