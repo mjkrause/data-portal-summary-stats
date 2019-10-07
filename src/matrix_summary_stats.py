@@ -30,6 +30,8 @@ logger = logging.getLogger(__name__)
 # for why the following line is required.
 matplotlib.use('Agg')
 
+os.environ["TMPDIR"] = "/data/tmp"
+
 
 class MatrixSummaryStats:
 
@@ -113,6 +115,7 @@ class MatrixSummaryStats:
     def download_canned_expression_matrix_from_s3(self, mtx_file: str) -> list:
         """Download matrix directory into local temporary directory and return as list."""
         self.tmpdir = TemporaryDirectory()
+        os.environ["TMPDIR"] = self.tmpdir.name
         os.chdir(self.tmpdir.name)
         self.matrix_zipfile_name = os.path.basename(mtx_file)
         self.client.download_file(Bucket=self.s3_bucket_name,
@@ -181,7 +184,10 @@ class MatrixSummaryStats:
         # These calls are necessary to create the n_genes and n_counts columns.
         # Actual gene threshold is set by self.min_gene_count during the call to the service, so we don't actually
         # filter cells here so small matrices don't break the unit tests.
+
+        logger.info('Filtering genes')
         sc.pp.filter_cells(adata, min_genes=0)
+        logger.info('Filtering cells')
         sc.pp.filter_genes(adata, min_cells=10)
 
         mito_genes = adata.var_names.str.startswith('MT-')
@@ -192,41 +198,64 @@ class MatrixSummaryStats:
                                     np.sum(adata.X, axis=1).A1
         # Add the total counts per cell as observations-annotation to adata.
         adata.obs['n_counts'] = adata.X.sum(axis=1).A1
-        sc.pl.violin(adata, ['n_counts', 'n_genes', 'percent_mito_genes'],
-                     jitter=0.4, multi_panel=True, save=figure_format, show=False)
+
+        # From Jing's notebook.
+        adata = adata[adata.obs['n_genes'] < 6000, :]
+        adata = adata[adata.obs['percent_mito_genes'] < 0.5, :]
+        # sc.pl.violin(adata, ['n_counts', 'n_genes', 'percent_mito_genes'],
+        #              jitter=0.4, multi_panel=True, save=figure_format, show=False)
 
         # 3. Figure: Number of genes over number of counts.
-        sc.pl.scatter(adata, x='n_counts', y='n_genes',
-                      save=f'_genes_vs_counts{figure_format}', show=False)
+        # sc.pl.scatter(adata, x='n_counts', y='n_genes',
+        #               save=f'_genes_vs_counts{figure_format}', show=False)
 
         # 4. Figure: Percent mitochondrial genes over number of counts.
-        sc.pl.scatter(adata, x='n_counts', y='percent_mito_genes',
-                      save=f'_percentMitoGenes_vs_count{figure_format}', show=False)
+        # sc.pl.scatter(adata, x='n_counts', y='percent_mito_genes',
+        #               save=f'_percentMitoGenes_vs_count{figure_format}', show=False)
 
         # 5. Figure: visualize highly-variable genes:
-        sc.pp.normalize_per_cell(adata, counts_per_cell_after=1e3)
+        # sc.pp.normalize_per_cell(adata, counts_per_cell_after=1e3)
+        logger.info('Normalizing ...')
+        sc.pp.normalize_per_cell(adata, counts_per_cell_after=1e4)  # Jing
         sc.pp.log1p(adata)  # logarithmize
         adata.raw = adata   # save raw data
-        sc.pp.highly_variable_genes(adata, min_mean=0.05, max_mean=30, min_disp=1.9)
-        sc.pl.highly_variable_genes(adata, save=figure_format, show=False)  # write to disk
+        # sc.pp.highly_variable_genes(adata, min_mean=0.05, max_mean=30, min_disp=1.9)
+
+        sc.pp.highly_variable_genes(adata)                            # Jing
+        adata = adata[:, adata.var['highly_variable']]                # Jing
+        logger.info('Regressing out mitochondrial genes')
+        sc.pp.regress_out(adata, ['n_counts', 'percent_mito_genes'])  # Jing
+        sc.pp.scale(adata, max_value=10)                              # Jing
+
+        # sc.pl.highly_variable_genes(adata, save=figure_format, show=False)  # write to disk
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             # see https://www.gitmemory.com/issue/lmcinnes/umap/252/505984440
 
             # 6. Figure: Principal components, PC2 against PC1
+            logger.info('Computing PCA')
             sc.tl.pca(adata, svd_solver='arpack')
-            sc.pl.pca(adata, color='CST3', show=False, save=figure_format)
+
+            #sc.pl.pca(adata, color='CST3', show=False, save=figure_format)
 
             # 7. Figure: tSNE, Umap 2 against Umap1, of Louvain and CST3.
-            sc.pp.neighbors(adata, n_neighbors=10, n_pcs=40)
+            #sc.pp.neighbors(adata, n_neighbors=10, n_pcs=40)
+
+            sc.pp.neighbors(adata)  # Jing
+
             sc.tl.umap(adata)
-            sc.tl.louvain(adata)
-            sc.pl.umap(adata, color=['louvain', 'CST3'], show=False, save=figure_format)
+            #sc.tl.louvain(adata)
+
+            logger.info('Computing Louvain clustering')
+            sc.tl.louvain(adata, resolution=0.5)  # Jing
+
+            # sc.pl.umap(adata, color=['louvain', 'CST3'], show=False, save=figure_format)
 
             # For Jing, Barcelona conference:
-            logger.info('Writing cluster file for Jing / Barcelona')
-            results_dir = os.path.dirname(__file__)
+            logger.info('Writing clusters file')
+            #results_dir = os.path.dirname(__file__)
+            results_dir = '/data/Jing_Barcelona_files/min_gene_count_10'
             results_file = f'{results_dir}/{self.project_uuid}_clusters.txt'
             df = pd.DataFrame(adata.obs['louvain'])
             df.columns=['louvain cluster']
@@ -236,9 +265,10 @@ class MatrixSummaryStats:
             # Options for "method" in the following line are:
             # {'logreg', 't-test', 'wilcoxon', 't-test_overestim_var'}
             sc.tl.rank_genes_groups(adata, 'louvain', method='t-test')
-            sc.pl.rank_genes_groups(adata, n_genes=10, sharey=False, show=False, save=figure_format)
+            # sc.pl.rank_genes_groups(adata, n_genes=10, sharey=False, show=False, save=figure_format)
 
             # For Jing, Barcelona conference:
+            logger.info('Writing marker genes file')
             logger.info('Writing gene rank file for Jing / Barcelona')
             results_file = f'{results_dir}/{self.project_uuid}_marker_genes.txt'
             df = pd.DataFrame(adata.uns['rank_genes_groups']['names'])
@@ -258,7 +288,7 @@ class MatrixSummaryStats:
                                         Key=key)
         logger.info('...done uploading figures')
         self.cleanup_tmpdir()
-        logger.info('Temporary directory removed')
+
 
     def _request_matrix(self, project_document_id: str = None) -> requests.models.Response:
         # Parameters to construct filter for matrix request.
@@ -372,7 +402,10 @@ class MatrixSummaryStats:
                urllib.parse.quote('#' + document_id)
 
     def cleanup_tmpdir(self):
-        self.tmpdir.cleanup()
+        logger.info(f'Removing {self.tmpdir.name} ...')
+        shutil.rmtree(self.tmpdir.name)
+        #self.tmpdir.cleanup()
+        logger.info('Temporary directory removed')
 
     def get_matrix_path_and_project_uuid(self):
         """Create name of project ID with .mtx extension."""

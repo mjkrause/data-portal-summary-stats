@@ -56,7 +56,7 @@ def run_data_portal_summary_stats(args: argparse.Namespace):
             get_mss(**input_args).write_response_content_to_file_and_unzip()
             get_mss(**input_args).process_mtx_files()
             get_mss(**input_args).create_images()
-            get_mss(**input_args).upload_figs_to_s3()
+            get_mss(**input_args).upload_figs_to_s3()  # destroys temporary directory
             time.sleep(15)
     elif args.source == 'canned':
         mtx_files = get_mss(**input_args).get_canned_matrix_filenames_from_s3()
