@@ -59,14 +59,14 @@ def run_data_portal_summary_stats(args: argparse.Namespace):
             get_mss(**input_args).upload_figs_to_s3()
             time.sleep(15)
     elif args.source == 'canned':
-        mtx_files = get_mss(**input_args).get_canned_matrix_filenames_from_S3()
+        mtx_files = get_mss(**input_args).get_canned_matrix_filenames_from_s3()
         for mtx_file in mtx_files:
             zipfile_ID = first(os.path.basename(mtx_file).split('.'))
             if zipfile_ID in do_not_process:
                 logger.info(f'\nSkipping processing of project ID {zipfile_ID}')
                 continue
             logger.info(f'\nDownloading canned matrix file with project ID {zipfile_ID} from S3.')
-            canned_file = get_mss(**input_args).download_canned_expression_matrix_from_S3(mtx_file)
+            canned_file = get_mss(**input_args).download_canned_expression_matrix_from_s3(mtx_file)
             if canned_file == []:
                 continue
             logger.info(f'Processing matrix with project ID {zipfile_ID} from S3')

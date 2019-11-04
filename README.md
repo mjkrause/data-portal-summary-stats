@@ -133,3 +133,6 @@ The **second** solution is to simply black-list the matrix files that are too la
  upload the file `blacklist` to the root of the `project-assets` S3 bucket of the corresponding
  deployment environment.
  
+ ## Tests
+ Run `python -m unittest` from the project root.
+ 
