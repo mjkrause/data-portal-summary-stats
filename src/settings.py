@@ -20,20 +20,19 @@ endpoints = {
 s3_bucket_info = {
     'dev': {
         'bucket_name': 'dev.project-assets.data.humancellatlas.org',
-        'key': 'project-assets/project-stats/'
+        'key_prefix': 'project-assets/project-stats/'
     },
     'integration': {
         'bucket_name': 'integration.project-assets.data.humancellatlas.org',
-        'key': 'project-assets/project-stats/'
+        'key_prefix': 'project-assets/project-stats/'
     },
     'staging': {
         'bucket_name': 'staging.project-assets.data.humancellatlas.org',
-        'key': 'project-assets/project-stats/'
+        'key_prefix': 'project-assets/project-stats/'
     },
     'prod': {
         'bucket_name': 'project-assets.data.humancellatlas.org',
-        'key': 'project-assets/project-stats/'
+        'key_prefix': 'project-assets/project-stats/'
     }
 
 }
-

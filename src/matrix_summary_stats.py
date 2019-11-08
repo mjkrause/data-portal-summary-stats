@@ -24,9 +24,6 @@ from src.utils import convert_size
 
 
 logger = logging.getLogger(__name__)
-ch = logging.StreamHandler(sys.stdout)  # console handler to output to stdout
-ch.setLevel(logging.INFO)
-logger.addHandler(ch)
 
 # See https://stackoverflow.com/questions/27147300/
 # matplotlib-tcl-asyncdelete-async-handler-deleted-by-the-wrong-thread
@@ -45,7 +42,7 @@ class MatrixSummaryStats:
         self.source_matrix = source_matrix
         self.project_field_name = project_field_name  # needed if matrices requests from service
         self.min_gene_count = min_gene_count  # for field genes_detected in matrix filter
-        self.projdir = os.getcwd()
+        self.projdir = os.path.dirname(os.path.abspath(__file__))
         self.project_uuid = None
         self.tmpdir = None
         self.matrix_zipfile_name = None
@@ -62,7 +59,7 @@ class MatrixSummaryStats:
 
         return list(response.json()['cell_counts'].keys())
 
-    def get_canned_matrix_filenames_from_S3(self) -> list:
+    def get_canned_matrix_filenames_from_s3(self) -> list:
         """Return list of canned matrix directory names (with prefix keys)
         contained in S3 bucket."""
         prefix = 'project-assets/project-matrices'
@@ -113,7 +110,7 @@ class MatrixSummaryStats:
         self.matrix_response = requests.get(s3_download_url, stream=True)
         self.matrix_zipfile_name = os.path.basename(s3_download_url)
 
-    def download_canned_expression_matrix_from_S3(self, mtx_file) -> list:
+    def download_canned_expression_matrix_from_s3(self, mtx_file: str) -> list:
         """Download matrix directory into local temporary directory and return as list."""
         self.tmpdir = TemporaryDirectory()
         os.chdir(self.tmpdir.name)
@@ -382,4 +379,3 @@ class MatrixSummaryStats:
             self.matrix_path = self.project_uuid + '.mtx'
         except ValueError:
             self.matrix_path = []
-

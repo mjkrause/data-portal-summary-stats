@@ -13,9 +13,6 @@ from src.utils import get_blacklist_from_s3
 
 
 logger = logging.getLogger(__name__)
-ch = logging.StreamHandler(sys.stdout)  # console handler to output to stdout
-ch.setLevel(logging.INFO)
-logger.addHandler(ch)
 
 _MSS = None  # mss is matrix summary stats, create global instance
 _MSS_CLIENT = None  # boto3 client
@@ -29,10 +26,10 @@ def run_data_portal_summary_stats(args: argparse.Namespace):
         'source_of_matrix': args.source
     }
     # Temporary work-around for matrices that can't be processed for various reasons.
-    if args.blacklist == 'false':
+    if args.blacklist == False:
         do_not_process = []
     else:
-        assert args.blacklist == 'true'
+        assert args.blacklist == True
         client = mss_client()
         do_not_process = get_blacklist_from_s3(
             client=client,
@@ -62,14 +59,14 @@ def run_data_portal_summary_stats(args: argparse.Namespace):
             get_mss(**input_args).upload_figs_to_s3()
             time.sleep(15)
     elif args.source == 'canned':
-        mtx_files = get_mss(**input_args).get_canned_matrix_filenames_from_S3()
+        mtx_files = get_mss(**input_args).get_canned_matrix_filenames_from_s3()
         for mtx_file in mtx_files:
             zipfile_ID = first(os.path.basename(mtx_file).split('.'))
             if zipfile_ID in do_not_process:
                 logger.info(f'\nSkipping processing of project ID {zipfile_ID}')
                 continue
             logger.info(f'\nDownloading canned matrix file with project ID {zipfile_ID} from S3.')
-            canned_file = get_mss(**input_args).download_canned_expression_matrix_from_S3(mtx_file)
+            canned_file = get_mss(**input_args).download_canned_expression_matrix_from_s3(mtx_file)
             if canned_file == []:
                 continue
             logger.info(f'Processing matrix with project ID {zipfile_ID} from S3')
@@ -92,7 +89,7 @@ def get_mss(**input_args):
         _MSS = MatrixSummaryStats(
             deployment=input_args['deployment'],
             bucket_name=s3_bucket_info[input_args['deployment']]['bucket_name'],
-            key=s3_bucket_info[input_args['deployment']]['key'],
+            key=s3_bucket_info[input_args['deployment']]['key_prefix'],
             client=mss_client(),
             source_matrix=input_args['source_of_matrix'],
             project_field_name=input_args['project_field_name'],
