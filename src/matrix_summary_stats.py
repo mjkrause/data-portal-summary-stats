@@ -7,10 +7,13 @@ import shutil
 import gzip
 import pandas as pd
 import scanpy as sc
+import numpy as np
 import requests
 import logging
 import urllib
 import matplotlib
+import warnings
+import numba
 from zipfile import ZipFile
 from typing import List, Dict, Any
 from tempfile import TemporaryDirectory
@@ -162,6 +165,7 @@ class MatrixSummaryStats:
                     shutil.copyfileobj(source, target)
 
     def create_images(self) -> None:
+
         logger.info('Creating figures...')
         figure_format = '.png'
         logger.info(f'Figures saved in {figure_format} format.')
@@ -172,14 +176,73 @@ class MatrixSummaryStats:
         adata.var_names_make_unique()
         sc.pl.highest_expr_genes(adata, n_top=20, save=figure_format, show=False)  # write to disk
 
-        # 2. Figure: highest-variable genes:
+        # 2. Figure: Violin plots of cells, all genes, and percent of mitochondrial genes
+
+        # These calls are necessary to create the n_genes and n_counts columns.
+        # Actual gene threshold is set by self.min_gene_count during the call to the service, so we don't actually
+        # filter cells here so small matrices don't break the unit tests.
+        sc.pp.filter_cells(adata, min_genes=0)
+        sc.pp.filter_genes(adata, min_cells=10)
+
+        mito_genes = adata.var_names.str.startswith('MT-')
+        # For each cell compute fraction of counts of mitochondrian genes vs. all genes. The `.A1`
+        # method flattens the matrix (i.e., converts it into an 1-by-n vector). This is necessary
+        # as X is sparse (to transform to a dense array after summing).
+        adata.obs['percent_mito_genes'] = np.sum(adata[:, mito_genes].X, axis=1).A1 /\
+                                    np.sum(adata.X, axis=1).A1
+        # Add the total counts per cell as observations-annotation to adata.
+        adata.obs['n_counts'] = adata.X.sum(axis=1).A1
+        sc.pl.violin(adata, ['n_counts', 'n_genes', 'percent_mito_genes'],
+                     jitter=0.4, multi_panel=True, save=figure_format, show=False)
+
+        # 3. Figure: Number of genes over number of counts.
+        sc.pl.scatter(adata, x='n_counts', y='n_genes',
+                      save=f'_genes_vs_counts{figure_format}', show=False)
+
+        # 4. Figure: Percent mitochondrial genes over number of counts.
+        sc.pl.scatter(adata, x='n_counts', y='percent_mito_genes',
+                      save=f'_percentMitoGenes_vs_count{figure_format}', show=False)
+
+        # 5. Figure: visualize highly-variable genes:
         sc.pp.normalize_per_cell(adata, counts_per_cell_after=1e3)
         sc.pp.log1p(adata)  # logarithmize
         adata.raw = adata   # save raw data
-        sc.pp.log1p(adata)
-        adata.raw = adata
-        sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
+        sc.pp.highly_variable_genes(adata, min_mean=0.05, max_mean=30, min_disp=1.9)
         sc.pl.highly_variable_genes(adata, save=figure_format, show=False)  # write to disk
+
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            # see https://www.gitmemory.com/issue/lmcinnes/umap/252/505984440
+
+            # 6. Figure: Principal components, PC2 against PC1
+            sc.tl.pca(adata, svd_solver='arpack')
+            sc.pl.pca(adata, color='CST3', show=False, save=figure_format)
+
+            # 7. Figure: tSNE, Umap 2 against Umap1, of Louvain and CST3.
+            sc.pp.neighbors(adata, n_neighbors=10, n_pcs=40)
+            sc.tl.umap(adata)
+            sc.tl.louvain(adata)
+            sc.pl.umap(adata, color=['louvain', 'CST3'], show=False, save=figure_format)
+
+            # For Jing, Barcelona conference:
+            results_file = f'./{self.project_uuid}_clusters.txt'
+            df = pd.DataFrame(adata.obs['louvain'])
+            df.columns=['louvain cluster']
+            df.head(5)
+            df.to_csv(path_or_buf=results_file, sep='\t', index_label='cell')
+
+            # 8. Figure: Ranks genes
+            # Options for "method" in the following line are:
+            # {'logreg', 't-test', 'wilcoxon', 't-test_overestim_var'}
+            sc.tl.rank_genes_groups(adata, 'louvain', method='t-test')
+            sc.pl.rank_genes_groups(adata, n_genes=10, sharey=False, show=False, save=figure_format)
+
+            # For Jing, Barcelona conference:
+            results_file = f'./{self.project_uuid}_marker_genes.txt'
+            df = pd.DataFrame(adata.uns['rank_genes_groups']['names'])
+            df.to_csv(path_or_buf=results_file, sep='\t')
+
+
 
     def upload_figs_to_s3(self) -> None:
         os.chdir(self.tmpdir.name)
