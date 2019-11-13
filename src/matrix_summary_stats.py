@@ -177,7 +177,11 @@ class MatrixSummaryStats:
         sc.pl.highest_expr_genes(adata, n_top=20, save=figure_format, show=False)  # write to disk
 
         # 2. Figure: Violin plots of cells, all genes, and percent of mitochondrial genes
-        sc.pp.filter_cells(adata, min_genes=1200)
+
+        # These calls are necessary to create the n_genes and n_counts columns.
+        # Actual gene threshold is set by self.min_gene_count during the call to the service, so we don't actually
+        # filter cells here so small matrices don't break the unit tests.
+        sc.pp.filter_cells(adata, min_genes=0)
         sc.pp.filter_genes(adata, min_cells=10)
 
         mito_genes = adata.var_names.str.startswith('MT-')

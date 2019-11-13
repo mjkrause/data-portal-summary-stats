@@ -1,13 +1,17 @@
-#/usr/bin/env python3
+# /usr/bin/env python3
 
 import unittest
 import os
 import shutil
 import gzip
 from tempfile import TemporaryDirectory
-from zipfile import ZipFile, is_zipfile
+from zipfile import (
+    ZipFile,
+    is_zipfile,
+)
 from src.prune_matrix_mtx import prune_matrix_mtx
 from src.utils import remove_extension
+
 
 @unittest.skip
 class TestPruneMatrixMtx(unittest.TestCase):
@@ -17,6 +21,7 @@ class TestPruneMatrixMtx(unittest.TestCase):
     this test should not be executed anymore. Use the unittest.skip decorator to prevent this
     test from being executed.
     """
+
     def setUp(self) -> None:
         self.src_file = 'e7d811e2-832a-4452-85a5-989e2f8267bf.mtx.zip'
         self.bak_file = 'e7d811e2-832a-4452-85a5-989e2f8267bf.mtx.zip.bak'
@@ -56,7 +61,7 @@ class TestPruneMatrixMtx(unittest.TestCase):
         pruned_file_size = statinfo.st_size
 
         # Test whether pruned file has been reduced in size by at least 75% (0.25 * original size).
-        self.assertGreaterEqual(0.25, pruned_file_size/original_file_size)
+        self.assertGreaterEqual(0.25, pruned_file_size / original_file_size)
 
         currdir = os.getcwd()
         with TemporaryDirectory() as tmpdir:
@@ -77,6 +82,7 @@ class TestPruneMatrixMtx(unittest.TestCase):
             observed_second_header_row = second_header_line.strip('\r\n').split(' ')
             expected_second_header_row = ['63925', '2544', str(observed_row_count - 2)]
             self.assertEqual(expected_second_header_row, observed_second_header_row)
+
 
 if __name__ == '__main__':
     unittest.main()
