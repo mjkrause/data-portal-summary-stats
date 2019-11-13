@@ -5,10 +5,11 @@ RUN mkdir /build
 RUN mkdir /build/src
 
 WORKDIR /build
-
 COPY . /build
+
 RUN apt update \
     && apt install -qq -y build-essential libxml2-dev libglpk-dev libgmp3-dev libblas-dev liblapack-dev libarpack2-dev python-dev --no-install-recommends
+
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt
 
