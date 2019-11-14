@@ -13,8 +13,8 @@ on AWS S3. The general architecture is as follows:
 ## Set-up
 _data-portal-summary-stats_ is written in Python version 3.6. Clone the repository to your 
 local system and navigate into the `data-portal-summary-stats` directory. If you wish to run code
-from source create a virtual environment and run `pip install -r requirements.txt` to install 
-dependencies. 
+from source create a virtual environment, name it `.venv`, and run 
+`pip install -r requirements.txt` to install dependencies. 
 But the intention is to run the code in a Docker container. So 
 [Docker](https://www.docker.com) needs to be installed on your system. The application 
 uses AWS. Install AWS CLI and have the credentials configured for AWS. 
@@ -23,10 +23,12 @@ uses AWS. Install AWS CLI and have the credentials configured for AWS.
 This app uses the infrastructure management software 
 [Terraform](https://learn.hashicorp.com/terraform/getting-started/install.html), version 0.12 
 or higher. In the directory `infra` run `terraform init` to create the Terraform backend. 
-Next, enter all values in file `environment`, navigate back to the project root and run 
+Next source the environment file for the specific deployment environment you would like to set 
+up (e.g., _dev_). From the project root run 
 (requires the utility [`jq`](https://stedolan.github.io/jq/)):
+
 ```bash
-source environment
+source environment.dev
 ```
 
 ## Running the application
@@ -40,6 +42,7 @@ In the following we give detailed instructions for each individual step.
 
 ### 1. Build the Docker image
 To build the Docker image `data-portal-summary-stats` execute
+
 ```bash
 docker build --tag=data-portal-summary-stats:$TF_VAR_image_tag .
 ```
@@ -56,12 +59,12 @@ and exercise the endpoint `/v1/filters/{filter_name}` with `genes_detected` as `
 
 #### Running the `data-portal-summary-stats` Docker container locally
 
-This describes how to run the images as a container on your local system. The code in 
-`data_portal_summary_stats` needs to access AWS resources, so you need to pass your AWS
- credentials to container run. Suppose your credentials are in the usual subdirectory `~/.aws` 
+To run the image as a container on your local system pass your AWS
+ credentials to it. Suppose your credentials are in the usual subdirectory `~/.aws` 
  in your home directory, and they contain a profile named `my-profile`. In that case mount that 
  subdirectory as a volume inside the container, and set the environment variable with the default 
  profile like so:
+ 
 ```bash
 docker run -v $HOME/.aws:/root/.aws -e AWS_DEFAULT_PROFILE=$AWS_DEFAULT_PROFILE \
        data-portal-summary-stats:$TF_VAR_image_tag \ 
@@ -69,10 +72,11 @@ docker run -v $HOME/.aws:/root/.aws -e AWS_DEFAULT_PROFILE=$AWS_DEFAULT_PROFILE 
 ```
 
 ### 2. Push the image to AWS ECR
-Push the image you just created to [ECR](https://aws.amazon.com/ecr/), AWS's image registry. Before
-pushing the image [create a repository](https://console.aws.amazon.com/ecr/repositories) for 
-your images using the AWS console. Be sure to give that repository the same name as the image.
-Authentication is needed to push any image from localhost to that registry. Open a terminal and run
+First [create a repository](https://console.aws.amazon.com/ecr/repositories) for 
+your images using the AWS console. Next push the image you just created to 
+[ECR](https://aws.amazon.com/ecr/), AWS's image registry. Be sure to give that repository the 
+same name as the image. Authentication is needed to push any image from localhost to that registry. 
+Open a terminal and run
 
 ```bash
 aws ecr get-login --region $TF_VAR_aws_region --no-include-email
@@ -80,11 +84,13 @@ aws ecr get-login --region $TF_VAR_aws_region --no-include-email
 This prints the Docker log-in command, something like 
 `docker login -u AWS -p password https://$TF_VAR_acc_number.dkr.ecr.$TF_VAR_aws_region.amazonaws.com`, where 
 `password` has several hundred characters. Copy this command and run it in the terminal. Then 
-tag image using the same tag in the repository by running
+tag the image using the same tag in the repository by running
+
 ```bash
 docker tag data-portal-summary-stats:$TF_VAR_image_tag $TF_VAR_acc_number.dkr.ecr.$TF_VAR_aws_region.amazonaws.com/data-portal-summary-stats:$TF_VAR_image_tag
 ```
 and push it to the repository to the created namespace:
+
 ```bash
 docker push $TF_VAR_acc_number.dkr.ecr.$TF_VAR_aws_region.amazonaws.com/data-portal-summary-stats:$TF_VAR_image_tag
 ```
@@ -126,4 +132,7 @@ The **second** solution is to simply black-list the matrix files that are too la
  that file, following the style of one project ID per line, without any delimiters. Next
  upload the file `blacklist` to the root of the `project-assets` S3 bucket of the corresponding
  deployment environment.
+ 
+ ## Tests
+ Run `python -m unittest` from the project root.
  

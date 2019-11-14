@@ -4,34 +4,11 @@
 #
 # - No leading slash means the pattern matches at any depth.
 
-# Special files
-./environment
 
 # Python files
 *.pyc
 __pycache__/
-.mypy_cache/
-*.egg-info/
-/build/
-/dist/
-/.eggs/
-
-# IDE project files
-/.pydevproject
-
-# vim python-mode plugin
-/.ropeproject
-
-# IntelliJ IDEA / PyCharm project files
-/.idea
-/*.iml
-
-# OS X metadata files
-.DS_Store
-
-# Byte-compiled / optimized / DLL files
-*.py[cod]
-*$py.class
+/cache/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -44,3 +21,13 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log

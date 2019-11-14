@@ -5,11 +5,10 @@ RUN mkdir /build
 RUN mkdir /build/src
 
 WORKDIR /build
+COPY . /build
 
-COPY requirements.txt \
-     data_portal_summary_stats.py /build/
-
-COPY src/* /build/src/
+RUN apt update \
+    && apt install -qq -y build-essential libxml2-dev libglpk-dev libgmp3-dev libblas-dev liblapack-dev libarpack2-dev python-dev --no-install-recommends
 
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt
