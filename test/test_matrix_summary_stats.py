@@ -23,14 +23,19 @@ _SRC_PREFIX = 'project-assets/project-matrices'
 AWS_REGION = 'us-west-2'
 AWS_ACCESS_KEY_ID = 'fake_access_key'
 AWS_SECRET_ACCESS_KEY = 'fake_secret_key'
-MOCK_MATRIX = 'e7d811e2-832a-4452-85a5-989e2f8267bf.mtx.zip'
+
+# Tests were designed with first matrix in mind; second done is larger and can
+# help rule out issues caused by how tiny the first one is, but will always fail
+# certain tests.
+MOCK_MATRIX_ID = 'e7d811e2-832a-4452-85a5-989e2f8267bf' if True else 'dfdd4a14-4ca0-4108-a6f7-52fa2540c61f'
+MOCK_MATRIX_FILE = f'{MOCK_MATRIX_ID}.mtx.zip'
 
 
 class TestMatrixSummaryStatsMatrixServiceResponses(unittest.TestCase):
 
     def setUp(self) -> None:
         os.chdir(TEST_DIR)
-        with ZipFile(MOCK_MATRIX, 'r') as zipObj:
+        with ZipFile(MOCK_MATRIX_FILE, 'r') as zipObj:
             zipObj.extractall()
 
         self.mss = MatrixSummaryStats(
@@ -45,7 +50,7 @@ class TestMatrixSummaryStatsMatrixServiceResponses(unittest.TestCase):
 
     def tearDown(self) -> None:
         os.chdir(TEST_DIR)
-        shutil.rmtree('e7d811e2-832a-4452-85a5-989e2f8267bf.mtx/')
+        shutil.rmtree(f'{MOCK_MATRIX_ID}.mtx/')
         if os.path.isfile('mtx_readme.md'):
             os.remove('mtx_readme.md')
         if self.mss.tmpdir is not None:
@@ -91,7 +96,7 @@ class TestMatrixSummaryStatsMatrixServiceResponses(unittest.TestCase):
         responses.add(
             responses.GET, url_get1, json={
                 'cell_counts': {
-                    'e7d811e2-832a-4452-85a5-989e2f8267bf': 2,
+                    MOCK_MATRIX_ID: 2,
                 },
             }
         )
@@ -125,7 +130,7 @@ class TestMatrixSummaryStatsMatrixServiceResponses(unittest.TestCase):
         # Fifth response: GET in get_expression_matrix_from_service
         responses.add(responses.GET, matrix_url, status=200, stream=True)
 
-        self.mss.get_expression_matrix_from_service(projectID='e7d811e2-832a-4452-85a5-989e2f8267bf')
+        self.mss.get_expression_matrix_from_service(projectID=MOCK_MATRIX_ID)
 
         self.assertEqual(self.mss.matrix_response.status_code, 200)
         self.assertEqual(self.mss.matrix_zipfile_name, '13-13.mtx.zip')
@@ -190,29 +195,29 @@ class TestMatrixSummaryStatsS3(unittest.TestCase):
 
     def test_get_canned_matrix_filenames(self):
         matrix_files = self.mss.get_canned_matrix_filenames_from_s3()
-        expected = ['project-assets/project-matrices/e7d811e2-832a-4452-85a5-989e2f8267bf.mtx.zip']
+        expected = [f'project-assets/project-matrices/{MOCK_MATRIX_FILE}']
         self.assertEqual(expected, matrix_files)
 
     def test_download_canned_expression_matrix_from_S3(self):
         self.assertEqual(_BUCKET, self.mss.s3_bucket_name)
-        mtx_file = os.path.join(_SRC_PREFIX, MOCK_MATRIX)
+        mtx_file = os.path.join(_SRC_PREFIX, MOCK_MATRIX_FILE)
         downloaded_mtx_files = self.mss.download_canned_expression_matrix_from_s3(mtx_file)
         self.assertTrue(os.path.isdir(self.mss.tmpdir.name))
 
-        expected_mtx_files = ['e7d811e2-832a-4452-85a5-989e2f8267bf.mtx.zip']
+        expected_mtx_files = [MOCK_MATRIX_FILE]
         self.assertEqual(sorted(expected_mtx_files), sorted(downloaded_mtx_files))
 
     def test_upload_figs_to_S3(self):
         self.mss.tmpdir = TemporaryDirectory()
-        shutil.copyfile(os.path.join(TEST_DIR, MOCK_MATRIX),
-                        os.path.join(self.mss.tmpdir.name, MOCK_MATRIX))
+        shutil.copyfile(os.path.join(TEST_DIR, MOCK_MATRIX_FILE),
+                        os.path.join(self.mss.tmpdir.name, MOCK_MATRIX_FILE))
         self.mss.matrix_response = None
         self.mss.source_matrix = 'canned'
-        self.mss.matrix_zipfile_name = MOCK_MATRIX
+        self.mss.matrix_zipfile_name = MOCK_MATRIX_FILE
 
         observed = self.mss.write_response_content_to_file_and_unzip()
-        expected = ['genes.tsv.gz', 'cells.tsv.gz', 'matrix.mtx.gz']
-        self.assertEqual(sorted(expected), sorted(observed))
+        expected = {'genes.tsv.gz', 'cells.tsv.gz', 'matrix.mtx.gz'}
+        self.assertTrue(set(observed).issuperset(expected))
 
         self.mss.process_mtx_files()
         self.mss.create_images()
@@ -240,12 +245,12 @@ class TestMatrixSummaryStatsS3(unittest.TestCase):
 
         filter_genes_dispersion_fig = s3.ObjectSummary(
             bucket_name='dev.project-assets.data.humancellatlas.org',
-            key='project-assets/project-stats/e7d811e2-832a-4452-85a5-989e2f8267bf/filter_genes_dispersion.png')
+            key=f'project-assets/project-stats/{MOCK_MATRIX_ID}/filter_genes_dispersion.png')
         self.assertTrue(filter_genes_dispersion_fig in keys)
 
         highest_exp_genes_fig = s3.ObjectSummary(
             bucket_name='dev.project-assets.data.humancellatlas.org',
-            key='project-assets/project-stats/e7d811e2-832a-4452-85a5-989e2f8267bf/highest_expr_genes.png')
+            key=f'project-assets/project-stats/{MOCK_MATRIX_ID}/highest_expr_genes.png')
         self.assertTrue(highest_exp_genes_fig in keys)
 
 
@@ -253,7 +258,7 @@ class TestMatrixSummaryStats(unittest.TestCase):
 
     def setUp(self) -> None:
         os.chdir(TEST_DIR)
-        with ZipFile(MOCK_MATRIX, 'r') as zipObj:
+        with ZipFile(MOCK_MATRIX_FILE, 'r') as zipObj:
             zipObj.extractall()
 
         self.mss = MatrixSummaryStats(
@@ -268,7 +273,7 @@ class TestMatrixSummaryStats(unittest.TestCase):
 
     def tearDown(self) -> None:
         os.chdir(TEST_DIR)
-        shutil.rmtree('e7d811e2-832a-4452-85a5-989e2f8267bf.mtx/')
+        shutil.rmtree(f'{MOCK_MATRIX_ID}.mtx/')
         if os.path.isfile('mtx_readme.md'):
             os.remove('mtx_readme.md')
         if self.mss.tmpdir is not None:
@@ -311,7 +316,7 @@ class TestMatrixSummaryStats(unittest.TestCase):
     def test_process_mtx_files(self):
         # Implicitly tests method "preprocessing".
         self.mss.tmpdir = TemporaryDirectory()
-        self.mss.matrix_path = 'e7d811e2-832a-4452-85a5-989e2f8267bf.mtx'
+        self.mss.matrix_path = f'{MOCK_MATRIX_ID}.mtx'
         self.mss.process_mtx_files()
         self.assertIsNotNone(self.mss.tmpdir.name)
 
@@ -330,9 +335,9 @@ class TestMatrixSummaryStats(unittest.TestCase):
 def _upload_fixtures(bucket: str, fixtures_dir: str) -> None:
     client = boto3.client('s3')
     client.upload_file(
-        Filename=os.path.join(fixtures_dir, MOCK_MATRIX),
+        Filename=os.path.join(fixtures_dir, MOCK_MATRIX_FILE),
         Bucket=bucket,
-        Key=os.path.join(_SRC_PREFIX, MOCK_MATRIX)
+        Key=os.path.join(_SRC_PREFIX, MOCK_MATRIX_FILE)
     )
 
 

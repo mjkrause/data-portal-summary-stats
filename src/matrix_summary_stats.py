@@ -145,7 +145,7 @@ class MatrixSummaryStats:
         if self.source_matrix == 'fresh':
             assert len(mtx_files) == 3
         elif self.source_matrix == 'canned':
-            assert len(mtx_files) >= 3 and len(mtx_files) <= 4  # may contain extra readme file
+            assert 3 <= len(mtx_files) <= 4  # may contain extra readme file
         assert 'cells.tsv.gz' in mtx_files
         assert 'genes.tsv.gz' in mtx_files
         assert 'matrix.mtx.gz' in mtx_files
@@ -183,7 +183,7 @@ class MatrixSummaryStats:
 
         # These calls are necessary to create the n_genes and n_counts columns.
         # Actual gene threshold is set by self.min_gene_count during the call to the service, so we don't actually
-        # filter cells here so small matrices don't break the unit tests.
+        # filter cells by gene count here so small matrices don't break the unit tests.
 
         logger.info('Filtering genes')
         sc.pp.filter_cells(adata, min_genes=0)
@@ -248,14 +248,17 @@ class MatrixSummaryStats:
             #sc.tl.louvain(adata)
 
             logger.info('Computing Louvain clustering')
-            sc.tl.louvain(adata, resolution=0.5)  # Jing
+            # A previous comment indicated that Jing had requested resolution 0.5
+            # but this caused all genes to go into a single cluster
+            sc.tl.louvain(adata, resolution=1.0)
 
             # sc.pl.umap(adata, color=['louvain', 'CST3'], show=False, save=figure_format)
 
             # For Jing, Barcelona conference:
             logger.info('Writing clusters file')
             #results_dir = os.path.dirname(__file__)
-            results_dir = '/data/Jing_Barcelona_files/min_gene_count_10'
+            results_dir = 'data/Jing_Barcelona_files/min_gene_count_10'
+            os.makedirs(results_dir)
             results_file = f'{results_dir}/{self.project_uuid}_clusters.txt'
             df = pd.DataFrame(adata.obs['louvain'])
             df.columns=['louvain cluster']
