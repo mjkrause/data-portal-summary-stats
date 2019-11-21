@@ -227,7 +227,7 @@ class MatrixSummaryStats:
         sc.pp.regress_out(adata, ['n_counts', 'percent_mito_genes'])  # Jing
         sc.pp.scale(adata, max_value=10)                              # Jing
 
-        # sc.pl.highly_variable_genes(adata, save=figure_format, show=False)  # write to disk
+        sc.pl.highly_variable_genes(adata, save=figure_format, show=False)  # write to disk
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
@@ -259,7 +259,7 @@ class MatrixSummaryStats:
             #results_dir = os.path.dirname(__file__)
             results_dir = 'data/Jing_Barcelona_files/min_gene_count_10'
             os.makedirs(results_dir)
-            results_file = f'{results_dir}/{self.project_uuid}_clusters.txt'
+            results_file = f'{results_dir}/{self.project_uuid}_clusters.txt'  # should NOT be txt files, they are tsv
             df = pd.DataFrame(adata.obs['louvain'])
             df.columns=['louvain cluster']
             df.to_csv(path_or_buf=results_file, sep='\t', index_label='cell')
