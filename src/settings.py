@@ -34,5 +34,5 @@ s3_bucket_info = {
         'bucket_name': 'project-assets.data.humancellatlas.org',
         'key_prefix': 'project-assets/project-stats/'
     }
-
 }
+

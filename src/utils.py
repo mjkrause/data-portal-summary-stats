@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-
+import os
 import sys
 import math
+from typing import List
+
 import boto3
 import logging
 from more_itertools import first
@@ -22,28 +24,35 @@ def convert_size(size_bytes: float) -> str:
     return f'{s} {order_of_magnitude[i]}'
 
 
-def get_blacklist() -> list:
-    do_not_process = []
+def get_blacklist() -> List[str]:
     try:
         with open('blacklist', 'r') as fp:
-            for line in fp:
-                do_not_process.append(line.strip('\n'))
+            return [line.rstrip('\n') for line in fp]
     except FileNotFoundError:
         sys.exit('\n     File "blacklist" not found. Please create and populate it.')
-
-    return do_not_process
-
-
-def get_blacklist_from_s3(client: boto3.client, bucket: str, key: str) -> list:
-    response = client.get_object(Bucket=bucket, Key=key)
-    bytes_string = response['Body'].read()
-
-    return bytes_string.decode().strip('\n').split('\n')
 
 
 def remove_extension(filename: str, ext: str) -> str:
     """Removes one extension in a filename following character "."."""
     assert '.' in filename
-
     return first(filename.split(f'.{ext}'))
 
+
+def file_id(path):
+    return first(os.path.basename(path).split('.'))
+
+
+class DirectoryChange:
+    """
+    Context manager facilitating an undoable temporary switch to another working
+    directory.
+    """
+    def __init__(self, new_dir):
+        self.new_dir = new_dir
+
+    def __enter__(self):
+        self.old_dir = os.getcwd()
+        os.chdir(self.new_dir)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        os.chdir(self.old_dir)
