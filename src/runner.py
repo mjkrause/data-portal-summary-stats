@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-import os
-from tempfile import TemporaryDirectory
-
 import argparse
 import logging
 import time
@@ -15,6 +12,7 @@ from src.matrix_provider import (
 )
 from src.matrix_summary_stats import MatrixSummaryStats
 from src.s3_service import S3Service
+from src.utils import TemporaryDirectoryChange
 
 log = logging.getLogger(__name__)
 
@@ -45,13 +43,12 @@ def run_data_portal_summary_stats(args: argparse.Namespace):
 
     iter_matrices = iter(provider)
     while True:
-        with TemporaryDirectory() as tempdir:
-            os.chdir(tempdir.name)
+        with TemporaryDirectoryChange() as tempdir:
             try:
                 mtx_info = next(iter_matrices)
             except StopIteration:
                 break
-            log.info(f'Writing to temporary directory {tempdir.name}')
+            log.info(f'Writing to temporary directory {tempdir}')
             log.info(f'Processing matrix for project {mtx_info.project_uuid} ({mtx_info.source})')
 
             preparer = MatrixPreparer(mtx_info)

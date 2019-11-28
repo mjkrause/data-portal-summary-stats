@@ -24,6 +24,7 @@ from src.matrix_info import MatrixInfo
 from src.utils import (
     convert_size,
     file_id,
+    remove_ext,
 )
 from botocore.exceptions import ClientError
 from more_itertools import first
@@ -76,14 +77,14 @@ class CannedMatrixProvider(MatrixProvider):
     def get_entity_ids(self) -> List[str]:
         # previously get_canned_matrix_filenames_from_s3(self) -> list:
         try:
-            response = self.s3.list_bucket()
+            keys = self.s3.list_bucket()
         except ClientError as e:
             log.info(e)
             return []
         else:
-            return [file_id(obj['Key'])
-                    for obj in response['Contents']
-                    if obj['Key'].endswith(self.mtx_ext)]
+            return [file_id(key)
+                    for key in keys
+                    if key.endswith(self.mtx_ext)]
 
     def obtain_matrix(self, matrix_id) -> MatrixInfo:
         # def download_canned_expression_matrix_from_s3(self, mtx_file: str) -> list:
@@ -96,7 +97,7 @@ class CannedMatrixProvider(MatrixProvider):
         return MatrixInfo(source='canned',
                           project_uuid=matrix_id,
                           zip_path=filename,
-                          extract_path=filename.rstrip('.zip'))
+                          extract_path=remove_ext(filename, '.zip'))
 
 
 class FreshMatrixProvider(MatrixProvider):
@@ -144,7 +145,7 @@ class FreshMatrixProvider(MatrixProvider):
         return MatrixInfo(source='fresh',
                           project_uuid=project_id,
                           zip_path=matrix_zipfile_name,
-                          extract_path=matrix_zipfile_name.rstrip('.zip'))
+                          extract_path=remove_ext(matrix_zipfile_name, '.zip'))
 
     def _request_matrix(self, project_document_id: str) -> requests.models.Response:
         # Parameters to construct filter for matrix request.
@@ -231,5 +232,6 @@ class FreshMatrixProvider(MatrixProvider):
         except requests.exceptions.HTTPError as err:
             log.info(f'{str(err)}')
 
-    def get_project_title(self, project_id: str) -> str:
-        return first(project['project_title'] for project in self.projects if project['project_UUID'] == project_id)
+    def get_project_title(self, project_id: str) -> Optional[str]:
+        matches = (project['project_title'] for project in self.projects if project['project_UUID'] == project_id)
+        return first(matches, None)

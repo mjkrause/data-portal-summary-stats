@@ -23,7 +23,7 @@ matplotlib.use('Agg')
 class MatrixSummaryStats:
 
     min_gene_counts = {
-        # Fill this in for different preparation methods
+        # Fill this in for different lib-con methods
     }
 
     # PLACEHOLDER
@@ -48,7 +48,7 @@ class MatrixSummaryStats:
 
         # 2. Figure: Violin plots of cells, all genes, and percent of mitochondrial genes
 
-        min_gene_count = self.min_gene_counts.get(self.info.lib_prep_method, self.default_min_gene_count)
+        min_gene_count = self.min_gene_counts.get(self.info.lib_con_method, self.default_min_gene_count)
         sc.pp.filter_cells(adata, min_genes=min_gene_count)
         # What to do for this parameter?
         sc.pp.filter_genes(adata, min_cells=10)

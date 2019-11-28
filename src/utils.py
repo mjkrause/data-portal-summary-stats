@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 import os
-import sys
 import math
+from tempfile import TemporaryDirectory
 from typing import List
 
-import boto3
 import logging
 from more_itertools import first
 
@@ -25,21 +24,26 @@ def convert_size(size_bytes: float) -> str:
 
 
 def get_blacklist() -> List[str]:
-    try:
-        with open('blacklist', 'r') as fp:
-            return [line.rstrip('\n') for line in fp]
-    except FileNotFoundError:
-        sys.exit('\n     File "blacklist" not found. Please create and populate it.')
-
-
-def remove_extension(filename: str, ext: str) -> str:
-    """Removes one extension in a filename following character "."."""
-    assert '.' in filename
-    return first(filename.split(f'.{ext}'))
+    with open('blacklist', 'r') as fp:
+        return [line.rstrip('\n') for line in fp]
 
 
 def file_id(path):
+    """
+    Filename without preceding directories or extensions.
+    """
     return first(os.path.basename(path).split('.'))
+
+
+def remove_ext(path, ext):
+    """
+    Remove a file extension. No effect if provided extension is missing.
+    """
+    parts = path.rsplit(ext, 1)
+    if len(parts) == 2 and parts[1] == '':
+        return first(parts)
+    else:
+        return path
 
 
 class DirectoryChange:
@@ -47,12 +51,25 @@ class DirectoryChange:
     Context manager facilitating an undoable temporary switch to another working
     directory.
     """
+
     def __init__(self, new_dir):
         self.new_dir = new_dir
 
     def __enter__(self):
         self.old_dir = os.getcwd()
         os.chdir(self.new_dir)
+        return self.new_dir
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type=None, exc_val=None, exc_tb=None):
         os.chdir(self.old_dir)
+
+
+class TemporaryDirectoryChange(DirectoryChange):
+
+    def __init__(self):
+        self.tmp = TemporaryDirectory()
+        super().__init__(self.tmp.name)
+
+    def __exit__(self, exc_type=None, exc_val=None, exc_tb=None):
+        super().__exit__(exc_type, exc_val, exc_tb)
+        self.tmp.cleanup()

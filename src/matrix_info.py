@@ -9,4 +9,4 @@ class MatrixInfo:
     project_uuid: str
     zip_path: Optional[str]
     extract_path: str
-    lib_prep_method: Optional[str] = None
+    lib_con_method: Optional[str] = None

@@ -10,7 +10,7 @@ from zipfile import (
     is_zipfile,
 )
 from src.prune_matrix_mtx import prune_matrix_mtx
-from src.utils import remove_extension
+from src.utils import remove_ext
 
 
 @unittest.skip
@@ -29,8 +29,8 @@ class TestPruneMatrixMtx(unittest.TestCase):
 
     def tearDown(self) -> None:
         os.remove(self.src_file)
-        shutil.copyfile(self.bak_file, remove_extension(self.bak_file, 'bak'))
-        os.rename(self.bak_file, remove_extension(self.bak_file, 'bak'))
+        shutil.copyfile(self.bak_file, remove_ext(self.bak_file, 'bak'))
+        os.rename(self.bak_file, remove_ext(self.bak_file, 'bak'))
 
     def test_prune_matrix_mtx(self):
 
@@ -70,7 +70,7 @@ class TestPruneMatrixMtx(unittest.TestCase):
             shutil.copyfile(src_file, dst_file)
             with ZipFile(dst_file, 'r') as zipObj:
                 zipObj.extractall(tmpdir)
-            dst_file = remove_extension(dst_file, 'zip')
+            dst_file = remove_ext(dst_file, 'zip')
             matrix_file = os.path.join(dst_file, 'matrix.mtx.gz')
             # Test whether the number of lines reported in header of matrix.mtx is correct.
             second_header_line = ''

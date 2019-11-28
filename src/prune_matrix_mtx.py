@@ -1,14 +1,23 @@
-#/usr/bin/env python3
+# /usr/bin/env python3
 
 import os
 import shutil
 import csv
 import gzip
 import random
-from src.utils import remove_extension
+from src.utils import remove_ext
 from zipfile import ZipFile
 from more_itertools import first
 
+
+# I (Noah Dove) have chosen to to maintain this file and it may be completely
+# broken. However it is worth noting that it was already broken because for some
+# reason it overwrites the actual gene expression data with the number of matrix
+# entries (see line #69). So the mock matrix used in testing is completely
+# corrupted, and what am I doing, obviously I need to fix this instead of just
+# document it. Work for monday.
+
+# TODO fix this shit
 
 def prune_matrix_mtx(mtx_dir_name: str, percent_prune: float = None) -> None:
     if percent_prune is None:
@@ -19,7 +28,7 @@ def prune_matrix_mtx(mtx_dir_name: str, percent_prune: float = None) -> None:
     # Decompress archive.
     with ZipFile(os.path.join(os.getcwd(), 'test', mtx_dir_name)) as zipObj:
         zipObj.extractall(os.path.join(os.getcwd(), 'test'))
-    arc_dir = remove_extension(mtx_dir_name, 'zip')
+    arc_dir = remove_ext(mtx_dir_name, '.zip')
     os.chdir(os.path.join(os.getcwd(), 'test', arc_dir))
 
     # Decompress matrix.mtx only.
@@ -29,7 +38,7 @@ def prune_matrix_mtx(mtx_dir_name: str, percent_prune: float = None) -> None:
         with open(outfile, 'wb') as f_out:
             shutil.copyfileobj(f_in, f_out)
     os.remove(mtx_file)  # remove physical file
-    mtx_file = remove_extension(mtx_file, 'gz')  # change value of string
+    mtx_file = mtx_file.rstrip('.gz')  # change value of string
 
     # Prune rows in MTX file according to percent_prune parameter.
     row_counter = 0

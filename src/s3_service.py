@@ -1,6 +1,10 @@
 import logging
 import os
-from typing import List
+from typing import (
+    List,
+    Dict,
+    Any,
+)
 
 import boto3
 
@@ -16,13 +20,17 @@ class S3Service:
         self.bucket_name = bucket_name
         self.key_prefix = key_prefix
 
-    def list_bucket(self):
-        return self.client.list_objects_v2(Bucket=self.bucket_name,
-                                           Prefix=self.key_prefix)
+    def list_bucket(self) -> List[str]:
+        response = self.client.list_objects_v2(Bucket=self.bucket_name,
+                                               Prefix=self.key_prefix)
+        try:
+            return [obj['Key'] for obj in response['Contents']]
+        except KeyError:
+            return []
 
-    def download(self, filename):
+    def download(self, filename) -> None:
         self.client.download_file(Bucket=self.bucket_name,
-                                  Key=filename,
+                                  Key=self.key_prefix + filename,
                                   Filename=filename)
 
     def get_blacklist(self) -> List[str]:
