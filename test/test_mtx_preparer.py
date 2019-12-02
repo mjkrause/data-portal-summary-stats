@@ -49,11 +49,35 @@ class TestMatrixPreparer(MockMatrixTestCase):
             #  a lot of info that would be useful in verification
             self.assertEqual(len(df.columns), len(MatrixPreparer.file_columns[filekey]))
 
+    def test_prune(self):
+
+        matrix_path = os.path.join(self.info.extract_path, MatrixPreparer.proc_files['matrix'])
+
+        target_frac = 0.25
+
+        self.preparer.unzip()
+        self.preparer.preprocess()
+
+        mm_params = dict(sep='\t', index_col=None, header=None, comment='%')
+        old_mat = pd.read_csv(matrix_path, **mm_params)
+        self.preparer.prune(target_frac)
+        new_mat = pd.read_csv(matrix_path, **mm_params)
+
+        old_entry_count = old_mat.index.size - 1
+        new_entry_count = new_mat.index.size - 1
+        observed_frac = new_entry_count / old_entry_count
+        frac_bounds = ((new_entry_count - 1) / old_entry_count, (new_entry_count + 1) / old_entry_count)
+
+        delta = lambda frac: abs(target_frac - frac)
+        for bound in frac_bounds:
+            self.assertLess(delta(observed_frac), delta(bound))
+
+        sc.read_10x_mtx(self.info.extract_path)
+
     def test_separate_homogeneous(self):
         self.preparer.unzip()
         self.preparer.preprocess()
-        # mock matrix has only two versions of hte same protocol so it will not
-        # be separated here.
+        # mock matrix only uses smartseq2
         sep_infos = self.preparer.separate(strip_version=True)
         self.assertEqual(len(sep_infos), 1)
         self.assertEqual(sep_infos[0], self.info)
@@ -67,7 +91,7 @@ class TestMatrixPreparer(MockMatrixTestCase):
 
         self.preparer.unzip()
         self.preparer.preprocess()
-        # likewise, this will keep protocol versions separate from each other
+        # mock matrix uses smartseq2 2.3.0 amd 2.4.0 which are separable
         sep_infos = self.preparer.separate(strip_version=False)
 
         observed_libcon_methods = {i.lib_con_method for i in sep_infos}

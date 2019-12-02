@@ -3,6 +3,7 @@ from functools import lru_cache
 import gzip
 import logging
 import os
+import warnings
 
 from more_itertools import (
     first,
@@ -15,6 +16,10 @@ import re
 from typing import (
     List,
     Optional,
+    Tuple,
+    Callable,
+    Sequence,
+    Union,
 )
 from zipfile import ZipFile
 
@@ -82,6 +87,21 @@ class MatrixPreparer:
                                      rename=self.proc_files[key])
                 os.remove(gzfilename)
 
+    def prune(self, keep_frac: float) -> None:
+        """
+        Shrink matrix by removing entries at random to reach a desired fraction
+        of the original size.
+        :param keep_frac: the fraction of entries to keep, e.g. 0.05 to remove
+        95% of the entries.
+        :return: nothing, operations occurs on disk.
+        """
+        mtx_path = os.path.join(self.info.extract_path, self.proc_files['matrix'])
+        header, mtx = self._read_matrixmarket(mtx_path)
+        entries = mtx.index[1:]
+        keep_rows = np.random.choice(entries, round(keep_frac * entries.size), replace=False)
+        mtx = self._filter_matrix_entries(mtx, pd.Series(keep_rows))
+        self._write_matrixmarket(mtx_path, header, mtx)
+
     def separate(self, strip_version: Optional[bool] = True) -> List[MatrixInfo]:
         """
         Split matrix into independent entities based on library construction method.'
@@ -106,9 +126,10 @@ class MatrixPreparer:
             lib_con_data = barcodes.iloc[:, library_method_column_index]
             barcodes.drop(columns=barcodes.columns[library_method_column_index], inplace=True)
             if strip_version:
-                lib_con_data = lib_con_data.apply(self.strip_version_suffix)
+                lib_con_data = lib_con_data.map(self.strip_version_suffix)
             distinct_method_count = lib_con_data.nunique()
             assert distinct_method_count > 0
+
             if distinct_method_count == 1:
                 self.info.lib_con_method = first(lib_con_data)
                 result = [self.info]
@@ -124,36 +145,17 @@ class MatrixPreparer:
                                    extract_path=os.path.join(self.info.extract_path, lib_con_method),
                                    lib_con_method=lib_con_method))
 
+                    # copy updated files to new directory
                     with DirectoryChange(lib_con_method):
                         self._write_tsv(barcodes_file, group)
 
                         genes_file = self.proc_files['genes']
                         os.symlink(f'../{genes_file}', genes_file)
 
-                        # edit matrix file to match barcode subset
                         dst_matrix_file = self.proc_files['matrix']
-                        src_matrix_file = f'../{dst_matrix_file}'
-                        # scanpy needs MatrixMarket header even though pandas can't read it
-                        with open(src_matrix_file) as f:
-                            header = f.readline()
-                        mtx = pd.read_csv(src_matrix_file, header=None, comment='%', sep=' ')
-                        barcodes_column = mtx.iloc[1:, 1]
-                        # align 0-based index to 1-based barcode line numbers
-                        group.index += 1
-                        keeprows = barcodes_column.map(group.index.__contains__)
-                        # drop barcodes from other groups. +1 because of size header
-                        mtx.drop(labels=1+np.flatnonzero(~keeprows), inplace=True)
-                        barcodes_column = mtx.iloc[1:, 1]
-                        # realign barcode references in matrix file to 1-based
-                        # line numbers.
-                        collapser = lru_cache(maxsize=1)(lambda i: one(np.flatnonzero(group.index == i))+1)
-                        mtx.iloc[1:, 1] = barcodes_column.map(collapser)
-                        # update size info
-                        mtx.iloc[0, 1] = group.index.size
-                        mtx.iloc[0, 2] = mtx.index.size - 1
-                        with open(dst_matrix_file, 'w') as f:
-                            f.write(header)
-                        self._write_tsv(dst_matrix_file, mtx, mode='a')
+                        header, mtx = self._read_matrixmarket(f'../{dst_matrix_file}')
+                        mtx = self._filter_matrix_axis(mtx, group.index, 1)
+                        self._write_matrixmarket(dst_matrix_file, header, mtx)
         return result
 
     @classmethod
@@ -164,6 +166,61 @@ class MatrixPreparer:
         """
         version_suffix = r'_v\d+(?:\.\d+)*$'
         return re.sub(version_suffix, '', s)
+
+    @classmethod
+    def _filter_matrix_axis(cls,
+                            mtx: pd.DataFrame,
+                            axis_idx_subset: pd.Index,
+                            axis: int):
+        """
+        Remove entries in a matrix market matrix file to reflect a reduced set
+        of values is a matrix market row or column file.
+        :param mtx: matrix market entry dataframe.
+        :param axis_idx_subset: index containing a subset of the line numbers
+        referenced in either the rows or columns of the matrix file.
+        :param axis: 1 for rows, 2 for columns.
+        :return: matrix with entries referencing absent row or column numbers
+        removed and size info updated.
+        """
+        # align index to 1-based line numbers in axis (row or column) file
+        axis_idx_subset = axis_idx_subset + 1
+
+        # remove entries referencing missing row/columns
+        mtx = cls._filter_matrix_entries(mtx, lambda entry: entry[axis] in axis_idx_subset)
+
+        # realign references in matrix file to 1-based line numbers in axis file.
+        collapser = lru_cache(maxsize=1)(lambda i: one(np.flatnonzero(axis_idx_subset == i)) + 1)
+        mtx.iloc[1:, 1] = mtx.iloc[1:, 1].map(collapser)
+
+        # update size of axis file
+        mtx.iloc[0, axis] = axis_idx_subset.size
+
+        return mtx
+
+    @classmethod
+    def _filter_matrix_entries(cls,
+                               mtx: pd.DataFrame,
+                               which_rows: Union[pd.Series, Callable[[pd.Series], bool]]) -> pd.DataFrame:
+        """
+        Remove rows from a matrix-market format matrix file, leaving the row and
+        column files unchanged.
+        :param mtx: dataframe of matrix entries in matrix market format.
+        :param which_rows: predicate function or Series of integer indices.
+        :return: the modified matrix.
+        """
+        if callable(which_rows):
+            keep_labels = mtx.iloc[1:, :].apply(which_rows, axis=1)
+            mtx = mtx.drop(labels=1 + np.flatnonzero(~keep_labels))
+        else:
+            mtx = mtx.iloc[pd.concat([pd.Series(0), which_rows]), :]
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            # Pandas complains about this modification because it at this point
+            # `mtx` is a slice of of the original parameter and the assignment
+            # on the following line will not propagate past the slice. Which is
+            # exactly what is intended here.
+            mtx.iloc[0, 2] = mtx.index.size - 1
+        return mtx
 
     @classmethod
     def _preprocess(cls,
@@ -186,5 +243,20 @@ class MatrixPreparer:
             cls._write_tsv(outfile_name, df)
 
     @classmethod
-    def _write_tsv(cls, path: str, df: pd.DataFrame, **kwargs):
-        df.to_csv(path, index=False, header=False, sep='\t', **kwargs)
+    def _write_tsv(cls, path: str, df: pd.DataFrame, **pd_kwargs):
+        df.to_csv(path, index=False, header=False, sep='\t', **pd_kwargs)
+
+    @classmethod
+    def _read_matrixmarket(cls, path: str, **pd_kwargs) -> Tuple[str, pd.DataFrame]:
+        with open(path) as f:
+            header = f.readline()
+        assert header.startswith('%')
+        df = pd.read_csv(path, header=None, comment='%', sep=' ', **pd_kwargs)
+        return header, df
+
+    @classmethod
+    def _write_matrixmarket(cls, path: str, header: str, df: pd.DataFrame, **pd_kwargs):
+        # scanpy needs MatrixMarket header even though pandas can't read it
+        with open(path, 'w') as f:
+            f.write(header)
+        cls._write_tsv(path, df, mode='a', **pd_kwargs)

@@ -10,15 +10,6 @@ from zipfile import ZipFile
 from more_itertools import first
 
 
-# I (Noah Dove) have chosen to to maintain this file and it may be completely
-# broken. However it is worth noting that it was already broken because for some
-# reason it overwrites the actual gene expression data with the number of matrix
-# entries (see line #69). So the mock matrix used in testing is completely
-# corrupted, and what am I doing, obviously I need to fix this instead of just
-# document it. Work for monday.
-
-# TODO fix this shit
-
 def prune_matrix_mtx(mtx_dir_name: str, percent_prune: float = None) -> None:
     if percent_prune is None:
         percent_prune = 0.95  # include row if larger than this value
