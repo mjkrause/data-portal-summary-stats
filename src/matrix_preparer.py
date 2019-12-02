@@ -18,7 +18,6 @@ from typing import (
     Optional,
     Tuple,
     Callable,
-    Sequence,
     Union,
 )
 from zipfile import ZipFile
@@ -95,6 +94,8 @@ class MatrixPreparer:
         95% of the entries.
         :return: nothing, operations occurs on disk.
         """
+        if not (0 < keep_frac <= 1):
+            raise ValueError(f'Invalid prune fraction: {keep_frac}')
         mtx_path = os.path.join(self.info.extract_path, self.proc_files['matrix'])
         header, mtx = self._read_matrixmarket(mtx_path)
         entries = mtx.index[1:]
@@ -102,61 +103,64 @@ class MatrixPreparer:
         mtx = self._filter_matrix_entries(mtx, pd.Series(keep_rows))
         self._write_matrixmarket(mtx_path, header, mtx)
 
-    def separate(self, strip_version: Optional[bool] = True) -> List[MatrixInfo]:
+    def separate(self, strip_version: bool = True) -> List[MatrixInfo]:
         """
-        Split matrix into independent entities based on library construction method.'
+        Split matrix into independent entities based on library construction method.
 
         If the LCM is homogeneous, no change is made to the directory structure.
-        Otherwise, a new directory is created within the extraction directoy for
-        every observed library prep method and populated with the subset of
-        barcodes.tsv corresponding to that method.
-        Links are created for genes.tsv and matrix.mtx, which remain in the
+        Otherwise, a new directory is created within the extraction directory
+        for every observed library prep method and populated with the subset of
+        matrix.mtx corresponding to that method.
+        Links are created for the row and column tsv files, which remain in the
         top-level extraction dir.
         :param strip_version: if true, best effort is made to strip version
         identifiers from the end of the LCM strings to conglomerate different
         versions of the same protocol.
-        :return: list of paths to matrix directories.
+        :return: list of MatrixInfo objects describing the results of the
+        separation.
         """
-        barcodes_file = self.proc_files['barcodes']
         # Column headers have been removed so it takes a bit of footwork to
         # access the lib prep method field in pandas
         library_method_column_index = 1
+        barcode_column_index = 1
+
         with DirectoryChange(self.info.extract_path):
+            barcodes_file = self.proc_files['barcodes']
             barcodes = pd.read_csv(barcodes_file, sep='\t', header=None)
-            lib_con_data = barcodes.iloc[:, library_method_column_index]
-            barcodes.drop(columns=barcodes.columns[library_method_column_index], inplace=True)
+            lib_con_data = barcodes.pop(barcodes.columns[library_method_column_index])
+            self._write_tsv(barcodes_file, barcodes)
+
             if strip_version:
                 lib_con_data = lib_con_data.map(self.strip_version_suffix)
-            distinct_method_count = lib_con_data.nunique()
-            assert distinct_method_count > 0
 
-            if distinct_method_count == 1:
+            lib_con_methods = lib_con_data.unique()
+            assert len(lib_con_methods) > 0
+
+            if len(lib_con_methods) == 1:
                 self.info.lib_con_method = first(lib_con_data)
-                result = [self.info]
-                self._write_tsv(barcodes_file, barcodes)
+                return [self.info]
             else:
-                result = []
-                for lib_con_method, group in barcodes.groupby(lib_con_data.iloc.__getitem__):
+                for lib_con_method in lib_con_methods:
                     os.mkdir(lib_con_method)
-                    result.append(
-                        MatrixInfo(source=self.info.source,
+                    with DirectoryChange(lib_con_method):
+                        for filekey, filename in self.proc_files.items():
+                            if filekey == 'matrix':
+                                def matrix_filter(entry):
+                                    barcode_lineno = entry[barcode_column_index]
+                                    entry_method = lib_con_data.iloc[barcode_lineno - 1]
+                                    return entry_method == lib_con_method
+
+                                header, mtx = self._read_matrixmarket(f'../{filename}')
+                                mtx = self._filter_matrix_entries(mtx, matrix_filter)
+                                self._write_matrixmarket(filename, header, mtx)
+                            else:
+                                os.symlink(f'../{filename}', filename)
+                return [MatrixInfo(source=self.info.source,
                                    project_uuid=self.info.project_uuid,
                                    zip_path=None,
                                    extract_path=os.path.join(self.info.extract_path, lib_con_method),
-                                   lib_con_method=lib_con_method))
-
-                    # copy updated files to new directory
-                    with DirectoryChange(lib_con_method):
-                        self._write_tsv(barcodes_file, group)
-
-                        genes_file = self.proc_files['genes']
-                        os.symlink(f'../{genes_file}', genes_file)
-
-                        dst_matrix_file = self.proc_files['matrix']
-                        header, mtx = self._read_matrixmarket(f'../{dst_matrix_file}')
-                        mtx = self._filter_matrix_axis(mtx, group.index, 1)
-                        self._write_matrixmarket(dst_matrix_file, header, mtx)
-        return result
+                                   lib_con_method=lib_con_method)
+                        for lib_con_method in lib_con_methods]
 
     @classmethod
     def strip_version_suffix(cls, s: str):
@@ -175,6 +179,10 @@ class MatrixPreparer:
         """
         Remove entries in a matrix market matrix file to reflect a reduced set
         of values is a matrix market row or column file.
+        This is not necessary to remove entries from the matrix. It is only
+        necessary when entries have been removed from the row or column file and
+        the matrix file must be updated to avoid incorrect line number
+        references.
         :param mtx: matrix market entry dataframe.
         :param axis_idx_subset: index containing a subset of the line numbers
         referenced in either the rows or columns of the matrix file.
@@ -216,9 +224,9 @@ class MatrixPreparer:
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             # Pandas complains about this modification because it at this point
-            # `mtx` is a slice of of the original parameter and the assignment
-            # on the following line will not propagate past the slice. Which is
-            # exactly what is intended here.
+            # `mtx` is a slice of of the original parameter and the following
+            # assignment will not propagate past the slice. Which is exactly
+            # what is intended here.
             mtx.iloc[0, 2] = mtx.index.size - 1
         return mtx
 
