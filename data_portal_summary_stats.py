@@ -47,15 +47,6 @@ def main():
         help='Skip files with project IDs listed in a file named '
              '"blacklist" during processing if flag is set.'
     )
-    args_group.add_argument(
-        '--min_gene_count',
-        default=1000,
-        choices=range(300, 2000),
-        metavar="[300-2000]",
-        type=int,
-        help='The minimal gene count in the "genes_detected" field '
-             '(range from 300 to 2000). Default is 1000.'
-    )
     args = parser.parse_args()
 
     run_data_portal_summary_stats(args)

@@ -5,7 +5,6 @@ from abc import (
 import logging
 import os
 import shutil
-import sys
 import time
 from typing import (
     List,
@@ -16,8 +15,6 @@ from typing import (
 )
 import urllib.parse
 
-from attr import dataclass
-import boto3
 import requests
 
 from src.matrix_info import MatrixInfo
@@ -35,10 +32,14 @@ log = logging.getLogger(__name__)
 class MatrixProvider(ABC):
 
     def __init__(self, **kwargs):
+        """
+        :param kwargs:
+        Optional: blacklist: Iterable[str] - matrices to skip.
+        """
         self.blacklist = frozenset(kwargs.get('blacklist', []))
 
     @abstractmethod
-    def get_entity_ids(self) -> Iterable[str]:
+    def get_entity_ids(self) -> List[str]:
         """
         Obtain identifiers for matrix sources.
         What the ids refer to can vary depending on matrix source (e.g. object
@@ -57,9 +58,10 @@ class MatrixProvider(ABC):
 
     def __iter__(self):
         """
-        Download matrices and yield names of zip files.
+        Download matrices and yield info objects.
         """
         entity_ids = self.get_entity_ids()
+        log.info(f'Found {len(entity_ids)} target entities, {len(self.blacklist)} of which may be blacklisted.')
         for entity_id in entity_ids:
             if entity_id in self.blacklist:
                 log.info(f'Skipping blacklisted matrix {entity_id}')
@@ -71,26 +73,26 @@ class CannedMatrixProvider(MatrixProvider):
     mtx_ext = '.mtx.zip'
 
     def __init__(self, **kwargs):
+        """
+        :param kwargs:
+        Required: s3_service: boto3.client - AWS S3 client
+        Other params defined in superclass.
+        """
         self.s3 = kwargs.pop('s3_service')
         super().__init__(**kwargs)
 
     def get_entity_ids(self) -> List[str]:
-        # previously get_canned_matrix_filenames_from_s3(self) -> list:
-        try:
-            keys = self.s3.list_bucket()
-        except ClientError as e:
-            log.info(e)
-            return []
-        else:
-            return [file_id(key)
-                    for key in keys
-                    if key.endswith(self.mtx_ext)]
+        """List matrix objects in S3 bucket."""
+        keys = self.s3.list_bucket('matrices')
+        return [file_id(key)
+                for key in keys
+                if key.endswith(self.mtx_ext)]
 
     def obtain_matrix(self, matrix_id) -> MatrixInfo:
-        # def download_canned_expression_matrix_from_s3(self, mtx_file: str) -> list:
         """Download matrix from S3."""
+        log.info(f'Downloading matrix {matrix_id} from S3.')
         filename = matrix_id + self.mtx_ext
-        self.s3.download(filename)
+        self.s3.download('matrices', filename)
         assert filename in os.listdir('.')  # confirm successful download
         size = os.path.getsize(filename)  # in bytes
         log.info(f'Size of {filename}: {convert_size(size)}')
@@ -101,35 +103,42 @@ class CannedMatrixProvider(MatrixProvider):
 
 
 class FreshMatrixProvider(MatrixProvider):
+    project_id_field = 'project.provenance.document_id'
+    min_gene_count_field = 'genes_detected'
+    mtx_feature = 'gene'
+    mtx_format = 'mtx'
 
     def __init__(self, **kwargs):
+        """
+        :param kwargs:
+        Required:
+            hca_endpoint: str - URL of HCA matrix service
+            azul_endpoint: str - URL of azul service
+        Optional:
+            min_gene_count: int - Minimum genes for cells to be included in
+            downloaded matrix.
+        Other params defined in superclass.
+        """
         self.hca_endpoint = kwargs.pop('hca_endpoint')
         self.azul_endpoint = kwargs.pop('azul_endpoint')
-        self.project_field_name = kwargs.pop('project_field_name')
-        # TODO: is this parameter required or optional in the HCA matrix service?
-        # if optional, remove from this class.
-        self.min_gene_count = kwargs.pop('min_gene_count')
+        self.min_gene_count = kwargs.pop('min_gene_count', 0)
         super().__init__(**kwargs)
 
         self.projects = self._get_project_uuids_from_azul()
 
     def get_entity_ids(self):
-        #        def get_project_uuids_from_matrix_service(self) -> list:
         """Return list matrix directory names (with prefix keys) from matrix service"""
-        response = requests.get(f'{self.hca_endpoint}filters/{self.project_field_name}')
-
+        response = requests.get(f'{self.hca_endpoint}filters/{self.project_id_field}')
         self.check_response(response)
-
         return list(response.json()['cell_counts'].keys())
 
     def obtain_matrix(self, project_id: str) -> MatrixInfo:
-        # def get_expression_matrix_from_service(self, projectID=None) -> None:
-
+        log.info(f'Requesting matrix from project {project_id} from HCA.')
         project_title = self.get_project_title(project_id)
-        if project_title:
-            log.info(f'Project title: {project_title}')
-        else:
+        if project_title is None:
             log.info(f'No project title found for project ID {project_id} in Azul')
+        else:
+            log.info(f'Project title: {project_title}')
 
         status_response = self._request_matrix(project_id)
         assert status_response.status_code == 200
@@ -148,50 +157,46 @@ class FreshMatrixProvider(MatrixProvider):
                           extract_path=remove_ext(matrix_zipfile_name, '.zip'))
 
     def _request_matrix(self, project_document_id: str) -> requests.models.Response:
-        # Parameters to construct filter for matrix request.
-        feature = 'gene'
-        format_ = 'mtx'
-        min_gene_count_field = 'genes_detected'
 
-        list_projects_url = self.hca_endpoint + 'filters/' + self.project_field_name
+        list_projects_url = self.hca_endpoint + 'filters/' + self.project_id_field
         assert project_document_id in requests.get(list_projects_url).json()['cell_counts']
-        self.project_uuid = project_document_id
 
         payload = {
-            'feature': feature,
-            'format': format_,
+            'feature': self.mtx_feature,
+            'format': self.mtx_format,
             'filter': {
                 'op': 'and',
                 'value': [
                     {
                         'op': '=',
                         'value': project_document_id,
-                        'field': self.project_field_name
+                        'field': self.project_id_field
                     },
                     {
                         'op': '>=',
                         'value': self.min_gene_count,
-                        'field': min_gene_count_field
+                        'field': self.min_gene_count_field
                     }
                 ]
             }
         }
+
         log.info(f'Requesting expression matrix for project document ID {project_document_id}')
         log.info(f'Request payload and filter settings: {payload}')
         response = requests.post(self.hca_endpoint + 'matrix', json=payload)
         self.check_response(response)
         minute_counter = 0
         while True:
-            status_response = requests.get(self.hca_endpoint + 'matrix' + '/' +
-                                           response.json()['request_id'])
-            if status_response.json()['status'] == 'Complete':
+            status_response = requests.get(f'{self.hca_endpoint}matrix/{response.json()["request_id"]}')
+            status = status_response.json()['status']
+            if status == 'Complete':
                 break
-            elif status_response.json()['status'] == 'In Progress':
+            elif status == 'In Progress':
                 log.info(f'Matrix request status: {status_response.json()["status"]}...')
                 time.sleep(30)
                 minute_counter += 0.5
             else:
-                sys.exit(f'Matrix Service request status is: {status_response.json()["status"]}')
+                raise RuntimeError(f'Matrix service returned unexpected request status: {status}')
         log.info(f'Successfully requested matrix in {minute_counter} min.')
 
         return status_response
@@ -212,13 +217,13 @@ class FreshMatrixProvider(MatrixProvider):
                     'project_UUID': hit['entryId']
                 }
 
-            search_after = '?' + self.make_string_url_compliant_for_search_after(
+            search_after = '?' + self._make_string_url_compliant_for_search_after(
                 project_title=first(hits[-1]['projects'])['projectTitle'],
                 document_id=hits[-1]['entryId']
             )
 
     @staticmethod
-    def make_string_url_compliant_for_search_after(project_title: str, document_id: str) -> str:
+    def _make_string_url_compliant_for_search_after(project_title: str, document_id: str) -> str:
         """Return input string to be URL compliant, i.e., replacing special characters by their
          corresponding hexadecimal representation."""
         project_title = urllib.parse.quote(project_title)
@@ -230,7 +235,7 @@ class FreshMatrixProvider(MatrixProvider):
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            log.info(f'{str(err)}')
+            log.warning(f'{str(err)}')
 
     def get_project_title(self, project_id: str) -> Optional[str]:
         matches = (project['project_title'] for project in self.projects if project['project_UUID'] == project_id)

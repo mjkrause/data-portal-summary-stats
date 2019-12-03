@@ -11,24 +11,30 @@ class TestS3Service(S3TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.s3 = S3Service(self.bucket_name, self.key_prefix)
+        self.s3 = S3Service(self.bucket_name, self.key_prefixes)
 
     def test_list_bucket(self):
-        keys = self.s3.list_bucket()
+        target = 'matrices'
+        keys = self.s3.list_bucket(target)
         self.assertEqual(keys, [])
+
+        target_key = self.key_prefixes[target] + 'foo'
         self.client.put_object(Bucket=self.bucket_name,
-                               Key=self.key_prefix,
+                               Key=target_key,
                                Body=b'Hi')
-        keys = self.s3.list_bucket()
-        self.assertEqual(keys, [self.key_prefix])
+        self.client.put_object(Bucket=self.bucket_name,
+                               Key='non-target',
+                               Body=b'Bye')
+        keys = self.s3.list_bucket(target)
+        self.assertEqual(keys, [target_key])
 
     def test_download(self):
         key = 'hi'
         self.client.put_object(Bucket=self.bucket_name,
-                               Key=self.key_prefix + key,
+                               Key=self.key_prefixes['matrices'] + key,
                                Body=b'Hi')
         with TemporaryDirectoryChange():
-            self.s3.download(key)
+            self.s3.download('matrices', key)
             self.assertEqual(os.listdir('.'), [key])
 
     def test_get_blacklist(self):
@@ -52,8 +58,8 @@ class TestS3Service(S3TestCase):
                                               zip_path=None,
                                               extract_path='N/A',
                                               project_uuid=project_uuid))
-            found_objects = set(self.s3.list_bucket())
-            expected_objects = {f'{self.key_prefix}{project_uuid}/{file}' for file in figures_files}
+            found_objects = set(self.s3.list_bucket('figures'))
+            expected_objects = {f'{self.key_prefixes["figures"]}{project_uuid}/{file}' for file in figures_files}
             self.assertEqual(found_objects, expected_objects)
 
 

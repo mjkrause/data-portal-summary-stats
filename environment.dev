@@ -10,9 +10,6 @@ matrix_source=canned
 # To omit matrix files set to --blacklist, otherwise leave it blank:
 blacklist=
 
-# Integer between 300 and 2000:
-min_gene_count=1200
-
 # The name of the cluster the task runs in (as it will appear on AWS ECS):
 cluster_name=data-portal-summary-stats-fargate
 

@@ -1,8 +1,3 @@
-#!/usr/bin/env python
-
-import os
-
-import boto3
 import pandas as pd
 import scanpy as sc
 import numpy as np
@@ -24,16 +19,25 @@ class MatrixSummaryStats:
 
     min_gene_counts = {
         # Fill this in for different lib-con methods
+        'smartseq2': 0,
+        'optimus': 0
     }
 
     # PLACEHOLDER
     default_min_gene_count = 0
 
+    # What to do for this parameter?
+    min_cell_count = 10
+
+    @classmethod
+    def global_min_gene_count(cls):
+        return min(cls.default_min_gene_count, *cls.min_gene_counts.values())
+
     def __init__(self, mtx_info: MatrixInfo):
         self.info = mtx_info
+        self.min_gene_count = self.min_gene_counts.get(self.info.lib_con_method, self.default_min_gene_count)
 
     def create_images(self) -> None:
-        logger.info('Creating figures...')
         figure_format = '.png'
         logger.info(f'Figures saved in {figure_format} format.')
         logger.info(f'Path to matrix files is {self.info.extract_path}')
@@ -48,10 +52,8 @@ class MatrixSummaryStats:
 
         # 2. Figure: Violin plots of cells, all genes, and percent of mitochondrial genes
 
-        min_gene_count = self.min_gene_counts.get(self.info.lib_con_method, self.default_min_gene_count)
-        sc.pp.filter_cells(adata, min_genes=min_gene_count)
-        # What to do for this parameter?
-        sc.pp.filter_genes(adata, min_cells=10)
+        sc.pp.filter_cells(adata, min_genes=self.min_gene_count)
+        sc.pp.filter_genes(adata, min_cells=self.min_cell_count)
 
         mito_genes = adata.var_names.str.startswith('MT-')
         # For each cell compute fraction of counts of mitochondrian genes vs. all genes. The `.A1`

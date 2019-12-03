@@ -11,7 +11,10 @@ from moto import (
 @mock_sts
 class S3TestCase(unittest.TestCase):
     bucket_name = 'TheBucketName'
-    key_prefix = 'TheKeyPrefix/'
+    key_prefixes = {
+        'matrices': 'testing-matrix-folder/',
+        'figures': 'testing-figures-folder/'
+    }
 
     def setUp(self) -> None:
         self.client = boto3.client('s3')

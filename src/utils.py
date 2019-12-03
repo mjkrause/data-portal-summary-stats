@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import os
 import math
 from tempfile import TemporaryDirectory
@@ -65,6 +64,10 @@ class DirectoryChange:
 
 
 class TemporaryDirectoryChange(DirectoryChange):
+    """
+    Directory change context manager that creates and cleans up a temporary
+    directory.
+    """
 
     def __init__(self):
         self.tmp = TemporaryDirectory()

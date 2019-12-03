@@ -3,7 +3,6 @@ import os
 from typing import (
     List,
     Dict,
-    Any,
 )
 
 import boto3
@@ -15,22 +14,20 @@ log = logging.getLogger(__name__)
 
 class S3Service:
 
-    def __init__(self, bucket_name: str, key_prefix: str):
+    def __init__(self, bucket_name: str, key_prefixes: Dict[str, str]):
+        log.info('Initializing S3 service...')
         self.client = boto3.client('s3')
         self.bucket_name = bucket_name
-        self.key_prefix = key_prefix
+        self.key_prefixes = key_prefixes
 
-    def list_bucket(self) -> List[str]:
+    def list_bucket(self, target: str) -> List[str]:
         response = self.client.list_objects_v2(Bucket=self.bucket_name,
-                                               Prefix=self.key_prefix)
-        try:
-            return [obj['Key'] for obj in response['Contents']]
-        except KeyError:
-            return []
+                                               Prefix=self.key_prefixes[target])
+        return [obj['Key'] for obj in response.get('Contents', [])]
 
-    def download(self, filename) -> None:
+    def download(self, target: str, filename: str) -> None:
         self.client.download_file(Bucket=self.bucket_name,
-                                  Key=self.key_prefix + filename,
+                                  Key=self.key_prefixes[target] + filename,
                                   Filename=filename)
 
     def get_blacklist(self) -> List[str]:
@@ -41,7 +38,7 @@ class S3Service:
     def upload_figures(self, mtx_info: MatrixInfo) -> None:
         figures = os.listdir('figures/')
         for figure in figures:
-            key = self.key_prefix + mtx_info.project_uuid + '/' + figure
+            key = self.key_prefixes['figures'] + mtx_info.project_uuid + '/' + figure
             log.info(f'Uploading {figure} to S3 bucket {self.bucket_name} as {key}')
             self.client.upload_file(Filename=f'figures/{figure}',
                                     Bucket=self.bucket_name,
