@@ -45,18 +45,19 @@ class TestMatrixPreparer(MockMatrixTestCase):
         for filekey in ['barcodes', 'genes']:
             filename = os.path.join(self.info.extract_path, MatrixPreparer.proc_files[filekey])
             df = pd.read_csv(filename, sep='\t', index_col=None, header=None)
-            #  Unfortuantely Scanpy requires us to remove the headers so we lose
+            #  Unfortunately Scanpy requires us to remove the headers so we lose
             #  a lot of info that would be useful in verification
             self.assertEqual(len(df.columns), len(MatrixPreparer.file_columns[filekey]))
 
+        sc.read_10x_mtx(self.info.extract_path)
+
     def test_prune(self):
 
-        matrix_path = os.path.join(self.info.extract_path, MatrixPreparer.proc_files['matrix'])
+        matrix_path = os.path.join(self.info.extract_path, MatrixPreparer.unproc_files['matrix'])
 
         target_frac = 0.25
 
         self.preparer.unzip()
-        self.preparer.preprocess()
 
         mm_params = dict(sep='\t', index_col=None, header=None, comment='%')
         old_mat = pd.read_csv(matrix_path, **mm_params)
@@ -72,6 +73,7 @@ class TestMatrixPreparer(MockMatrixTestCase):
         for bound in frac_bounds:
             self.assertLess(delta(observed_frac), delta(bound))
 
+        self.preparer.preprocess()
         sc.read_10x_mtx(self.info.extract_path)
 
     def test_separate_homogeneous(self):

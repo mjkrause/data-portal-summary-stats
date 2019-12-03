@@ -22,7 +22,10 @@ from typing import (
 from zipfile import ZipFile
 
 from src.matrix_info import MatrixInfo
-from src.utils import DirectoryChange
+from src.utils import (
+    DirectoryChange,
+    remove_ext,
+)
 
 log = logging.getLogger(__name__)
 
@@ -30,10 +33,16 @@ log = logging.getLogger(__name__)
 class MatrixPreparer:
     library_method_column = 'analysis_protocol.protocol_core.protocol_id'
 
-    unproc_files = {
+    zipped_files = {
         'genes': 'genes.tsv.gz',
         'barcodes': 'cells.tsv.gz',
         'matrix': 'matrix.mtx.gz'
+    }
+
+    unproc_files = {
+        'genes': 'genes.tsv',
+        'barcodes': 'cells.tsv',
+        'matrix': 'matrix.mtx'
     }
 
     proc_files = {
@@ -53,7 +62,8 @@ class MatrixPreparer:
 
     def unzip(self) -> None:
         """
-        Extract files from top-level zip archive and remove archive.
+        Extract files from top-level zip archive, uncompress .gz files, and
+        remove archive.
         """
         log.info(f'Unzipping {self.info.zip_path}')
         os.mkdir(self.info.extract_path)
@@ -68,22 +78,26 @@ class MatrixPreparer:
 
         extracted_files = os.listdir(self.info.extract_path)
         assert 3 <= len(extracted_files) <= 4  # optional readme
-        assert all(filename in extracted_files for filename in self.unproc_files.values())
+        assert all(filename in extracted_files for filename in self.zipped_files.values())
+
+        with DirectoryChange(self.info.extract_path):
+            for gzfilename in self.zipped_files.values():
+                with gzip.open(gzfilename, 'rb') as gzfile:
+                    filename = remove_ext(gzfilename, '.gz')
+                    with open(filename, 'wb') as outfile:
+                        shutil.copyfileobj(gzfile, outfile)
+                        os.remove(gzfilename)
 
     def preprocess(self):
         """
         Extract gzip files and transform for ScanPy compatibility.
         """
-        # def process_mtx_files(self):
-
         with DirectoryChange(self.info.extract_path):
-            for key, gzfilename in self.unproc_files.items():
-                log.info(f'Processing file {gzfilename}')
-                with gzip.open(gzfilename, 'rb') as gzfile:
-                    self._preprocess(gzfile,
-                                     keep_cols=self.file_columns[key],
-                                     rename=self.proc_files[key])
-                os.remove(gzfilename)
+            for filekey, filename in self.unproc_files.items():
+                log.info(f'Processing file {filename}')
+                self._preprocess(remove_ext(filename, '.gz'),
+                                 keep_cols=self.file_columns[filekey],
+                                 rename=self.proc_files[filekey])
 
     def prune(self, keep_frac: float) -> None:
         """
@@ -123,6 +137,8 @@ class MatrixPreparer:
         library_method_column_index = 1
         barcode_column_index = 1
 
+        log.info('Separating by library construction method...')
+
         with DirectoryChange(self.info.extract_path):
             barcodes_file = self.proc_files['barcodes']
             barcodes = pd.read_csv(barcodes_file, sep='\t', header=None)
@@ -136,10 +152,12 @@ class MatrixPreparer:
             assert len(lib_con_methods) > 0
 
             if len(lib_con_methods) == 1:
+                log.info('Homogeneous LCM.')
                 self.info.lib_con_method = first(lib_con_data)
                 return [self.info]
             else:
                 for lib_con_method in lib_con_methods:
+                    log.info(f'Consolidating {lib_con_method} cells')
                     os.mkdir(lib_con_method)
                     with DirectoryChange(lib_con_method):
                         for filekey, filename in self.proc_files.items():
@@ -160,6 +178,31 @@ class MatrixPreparer:
                                    extract_path=os.path.join(self.info.extract_path, lib_con_method),
                                    lib_con_method=lib_con_method)
                         for lib_con_method in lib_con_methods]
+
+    def rezip(self, zip_path: str = None, remove_dir: bool = False) -> None:
+        """
+        Compress unprocessed files to zip archive.
+        This is the inverse operation of `unzip`.
+        :param remove_dir: whether the extraction directory should be removed
+        after zipping.
+        :param zip_path: path of resulting zip archive. Updates matrix info if
+        provided.
+        """
+        if zip_path is not None:
+            self.info.zip_path = zip_path
+
+        with ZipFile(self.info.zip_path, 'w') as zipfile:
+            with DirectoryChange(self.info.extract_path):
+                for gzfilename, filename in zip(self.zipped_files.values(),
+                                                self.unproc_files.values()):
+                    with open(filename, 'rb') as infile:
+                        with gzip.open(gzfilename, 'wb') as gzfile:
+                            shutil.copyfileobj(infile, gzfile)
+                            os.remove(filename)
+                    zipfile.write(gzfilename)
+
+        if remove_dir:
+            shutil.rmtree(self.info.extract_path)
 
     @classmethod
     def strip_version_suffix(cls, s: str):
@@ -231,23 +274,27 @@ class MatrixPreparer:
 
     @classmethod
     def _preprocess(cls,
-                    gzfile: gzip.GzipFile,
+                    infile_name: str,
                     keep_cols: Optional[List[str]] = None,
                     rename: Optional[str] = None) -> None:
         """
-        :param gzfile: gzipped file
+        :param infile_name: name of un-gzipped, unprocessed file
         :param keep_cols: columns to keep. None to skip column selection.
         :param rename: name of the unzipped, processed file to write to
         """
-        outfile_name = gzfile.name.rstrip('.gz') if rename is None else rename
-        if keep_cols is None:
-            with open(outfile_name, 'wb') as outfile:
-                shutil.copyfileobj(gzfile, outfile)
-        else:
-            df = pd.read_table(gzfile, sep='\t')
+        if infile_name == cls.unproc_files['matrix']:
+            # ScanPy requires gene expression to be int for some reason
+            header, df = cls._read_matrixmarket(infile_name)
+            df.iloc[:, 2] = np.rint(df.iloc[:, 2]).astype(int)
+            cls._write_matrixmarket(infile_name, header, df)
+        elif keep_cols is not None:
+            df = pd.read_table(infile_name, sep='\t')
             assert all(col in df.columns for col in keep_cols)
             df = df[keep_cols]
-            cls._write_tsv(outfile_name, df)
+            cls._write_tsv(infile_name, df)
+
+        if rename is not None:
+            os.rename(infile_name, rename)
 
     @classmethod
     def _write_tsv(cls, path: str, df: pd.DataFrame, **pd_kwargs):
@@ -266,4 +313,4 @@ class MatrixPreparer:
         # scanpy needs MatrixMarket header even though pandas can't read it
         with open(path, 'w') as f:
             f.write(header)
-        cls._write_tsv(path, df, mode='a', **pd_kwargs)
+        df.to_csv(path, index=False, header=False, sep=' ', mode='a', **pd_kwargs)
