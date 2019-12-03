@@ -75,7 +75,7 @@ class CannedMatrixProvider(MatrixProvider):
     def __init__(self, **kwargs):
         """
         :param kwargs:
-        Required: s3_service: boto3.client - AWS S3 client
+        Required: s3_service: S3Service - AWS S3 service
         Other params defined in superclass.
         """
         self.s3 = kwargs.pop('s3_service')
@@ -112,15 +112,15 @@ class FreshMatrixProvider(MatrixProvider):
         """
         :param kwargs:
         Required:
-            hca_endpoint: str - URL of HCA matrix service
-            azul_endpoint: str - URL of azul service
+        config: src.Config - config object providing endpoints
         Optional:
             min_gene_count: int - Minimum genes for cells to be included in
             downloaded matrix.
         Other params defined in superclass.
         """
-        self.hca_endpoint = kwargs.pop('hca_endpoint')
-        self.azul_endpoint = kwargs.pop('azul_endpoint')
+        config = kwargs.pop('config')
+        self.hca_endpoint = config.hca_matrix_service_endpoint
+        self.azul_endpoint = config.azul_project_endpoint
         self.min_gene_count = kwargs.pop('min_gene_count', 0)
         super().__init__(**kwargs)
 

@@ -7,6 +7,7 @@ from typing import (
 
 import boto3
 
+from src import Config
 from src.matrix_info import MatrixInfo
 
 log = logging.getLogger(__name__)
@@ -14,11 +15,14 @@ log = logging.getLogger(__name__)
 
 class S3Service:
 
-    def __init__(self, bucket_name: str, key_prefixes: Dict[str, str]):
+    def __init__(self, config: Config):
         log.info('Initializing S3 service...')
         self.client = boto3.client('s3')
-        self.bucket_name = bucket_name
-        self.key_prefixes = key_prefixes
+        self.bucket_name = config.s3_bucket_name
+        self.key_prefixes = {
+            'matrices': config.s3_canned_matrix_prefix,
+            'figures': config.s3_figures_prefix
+        }
 
     def list_bucket(self, target: str) -> List[str]:
         response = self.client.list_objects_v2(Bucket=self.bucket_name,

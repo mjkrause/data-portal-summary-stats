@@ -4,7 +4,7 @@ import argparse
 import logging
 import time
 
-from src import settings
+from src import Config
 from src.matrix_preparer import MatrixPreparer
 from src.matrix_provider import (
     FreshMatrixProvider,
@@ -21,21 +21,20 @@ def run_data_portal_summary_stats(args: argparse.Namespace):
     log.info(f'\nGenerating per-project summary statistics of matrix data from '
              f'{args.environ} deployment environment.\n')
 
-    s3_bucket_info = settings.s3_bucket_info[args.environ]
-    endpoints = settings.endpoints[args.environ]
+    config = Config(args.environ)
 
-    s3 = S3Service(s3_bucket_info['bucket_name'], s3_bucket_info['key_prefixes'])
+    s3 = S3Service(config)
 
     # Temporary work-around for matrices that can't be processed for various reasons.
     do_not_process = s3.get_blacklist() if args.blacklist else []
 
     if args.source == 'fresh':
         provider = FreshMatrixProvider(blacklist=do_not_process,
-                                       min_gene_count=MatrixSummaryStats.global_min_gene_count(),
-                                       hca_endpoint=endpoints['hca_matrix_service_url'],
-                                       azul_endpoint=endpoints['azul_projects_url'])
+                                       config=config,
+                                       min_gene_count=MatrixSummaryStats.global_min_gene_count())
     elif args.source == 'canned':
         provider = CannedMatrixProvider(blacklist=do_not_process,
+                                        config=config,
                                         s3_service=s3)
     else:
         assert False

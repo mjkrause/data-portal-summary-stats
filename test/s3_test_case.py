@@ -6,15 +6,17 @@ from moto import (
     mock_s3,
 )
 
+from src import Config
+
 
 @mock_s3
 @mock_sts
 class S3TestCase(unittest.TestCase):
-    bucket_name = 'TheBucketName'
-    key_prefixes = {
-        'matrices': 'testing-matrix-folder/',
-        'figures': 'testing-figures-folder/'
-    }
+    config = Config('dev')
+
+    @property
+    def bucket_name(self):
+        return self.config.s3_bucket_name
 
     def setUp(self) -> None:
         self.client = boto3.client('s3')

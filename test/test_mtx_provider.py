@@ -7,6 +7,7 @@ import unittest
 
 import responses
 
+from src import Config
 from src.matrix_provider import (
     CannedMatrixProvider,
     FreshMatrixProvider,
@@ -36,9 +37,7 @@ class TestFresh(TempdirTestCase, TestMatrixProvider):
     def setUp(self):
         super().setUp()
         self.provider = FreshMatrixProvider(blacklist=['bad'],
-                                            azul_endpoint=self.azul_endpoint,
-                                            hca_endpoint=self.hca_endpoint,
-                                            project_field_name=self.project_field_name,
+                                            config=Config('prod'),
                                             min_gene_count=1200)
 
     @responses.activate
@@ -130,7 +129,8 @@ class TestCanned(TempdirTestCase, S3TestCase, TestMatrixProvider):
         TempdirTestCase.setUp(self)
         S3TestCase.setUp(self)
         self.provider = CannedMatrixProvider(blacklist=['bad'],
-                                             s3_service=S3Service(self.bucket_name, self.key_prefixes))
+                                             s3_service=S3Service(self.config),
+                                             config=self.config)
 
     def tearDown(self):
         S3TestCase.tearDown(self)
@@ -140,7 +140,7 @@ class TestCanned(TempdirTestCase, S3TestCase, TestMatrixProvider):
         uuids = {'123', '456', '789', 'bad'}
         for uuid in uuids:
             self.client.put_object(Bucket=self.bucket_name,
-                                   Key=f'{self.key_prefixes["matrices"]}{uuid}.mtx.zip')
+                                   Key=f'{self.config.s3_canned_matrix_prefix}{uuid}.mtx.zip')
         self.assertEqual(set(self.provider.get_entity_ids()), uuids)
 
     def test_obtain_matrix(self):
@@ -148,9 +148,9 @@ class TestCanned(TempdirTestCase, S3TestCase, TestMatrixProvider):
         key = uuid + '.mtx.zip'
         with TemporaryDirectoryChange():
             self.client.put_object(Bucket=self.bucket_name,
-                                   Key=self.key_prefixes['matrices'] + key)
+                                   Key=self.config.s3_canned_matrix_prefix + key)
             mtx_info = self.provider.obtain_matrix(uuid)
-            self.assertEqual(os.listdir(), [key])
+            self.assertEqual(os.listdir('.'), [key])
             self.assertEqual(mtx_info.zip_path, key)
             self.assertEqual(mtx_info.source, 'canned')
 

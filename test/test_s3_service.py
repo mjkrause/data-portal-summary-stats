@@ -1,6 +1,7 @@
 import os
 import unittest
 
+from src import Config
 from src.matrix_info import MatrixInfo
 from src.s3_service import S3Service
 from src.utils import TemporaryDirectoryChange
@@ -11,14 +12,14 @@ class TestS3Service(S3TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.s3 = S3Service(self.bucket_name, self.key_prefixes)
+        self.s3 = S3Service(Config('dev'))
 
     def test_list_bucket(self):
         target = 'matrices'
         keys = self.s3.list_bucket(target)
         self.assertEqual(keys, [])
 
-        target_key = self.key_prefixes[target] + 'foo'
+        target_key = self.config.s3_canned_matrix_prefix + 'foo'
         self.client.put_object(Bucket=self.bucket_name,
                                Key=target_key,
                                Body=b'Hi')
@@ -31,7 +32,7 @@ class TestS3Service(S3TestCase):
     def test_download(self):
         key = 'hi'
         self.client.put_object(Bucket=self.bucket_name,
-                               Key=self.key_prefixes['matrices'] + key,
+                               Key=self.config.s3_canned_matrix_prefix + key,
                                Body=b'Hi')
         with TemporaryDirectoryChange():
             self.s3.download('matrices', key)
@@ -59,7 +60,7 @@ class TestS3Service(S3TestCase):
                                               extract_path='N/A',
                                               project_uuid=project_uuid))
             found_objects = set(self.s3.list_bucket('figures'))
-            expected_objects = {f'{self.key_prefixes["figures"]}{project_uuid}/{file}' for file in figures_files}
+            expected_objects = {f'{self.config.s3_figures_prefix}{project_uuid}/{file}' for file in figures_files}
             self.assertEqual(found_objects, expected_objects)
 
 
