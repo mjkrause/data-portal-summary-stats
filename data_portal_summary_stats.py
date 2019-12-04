@@ -24,11 +24,11 @@ def main():
     )
     args_group = parser.add_argument_group(title='arguments')
     args_group.add_argument(
-        '--environ',
+        '--stage',
         default='dev',
         choices=('dev', 'integration', 'staging', 'prod'),
         type=str,
-        help='Deployment environment (default: "dev") from which '
+        help='Deployment stage (default: "dev") from which '
              'matrix data are requested to create summary '
              'statistics.'
     )

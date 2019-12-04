@@ -42,7 +42,10 @@ class S3Service:
     def upload_figures(self, mtx_info: MatrixInfo) -> None:
         figures = os.listdir('figures/')
         for figure in figures:
-            key = self.key_prefixes['figures'] + mtx_info.project_uuid + '/' + figure
+            folder = mtx_info.project_uuid
+            if mtx_info.lib_con_method is not None:
+                folder = '/'.join([folder, mtx_info.lib_con_method])
+            key = self.key_prefixes['figures'] + '/'.join([folder, figure])
             log.info(f'Uploading {figure} to S3 bucket {self.bucket_name} as {key}')
             self.client.upload_file(Filename=f'figures/{figure}',
                                     Bucket=self.bucket_name,

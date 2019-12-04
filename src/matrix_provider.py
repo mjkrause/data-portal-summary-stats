@@ -10,7 +10,6 @@ from typing import (
     List,
     Dict,
     Any,
-    Iterable,
     Optional,
 )
 import urllib.parse
@@ -23,7 +22,6 @@ from src.utils import (
     file_id,
     remove_ext,
 )
-from botocore.exceptions import ClientError
 from more_itertools import first
 
 log = logging.getLogger(__name__)

@@ -1,6 +1,7 @@
 #!./.venv/bin/python
 import logging
 import os
+import shutil
 
 from src import Config
 from src.matrix_preparer import MatrixPreparer
@@ -24,8 +25,19 @@ def main():
         log.info('Processing...')
         prep.unzip()
         prep.prune(0.05)
+
+    log.info('Copying to notebook dir')
+    shutil.copytree(f'../test/{mtxinfo.extract_path}', f'../notebook/{mtxinfo.extract_path}')
+
+    with DirectoryChange('../notebook'):
+        log.info('Preprocessing files for notebook')
+        prep.preprocess()
+
+    with DirectoryChange('../test/'):
+        log.info('Recompressing')
         prep.rezip(remove_dir=True, zip_path=MockMatrixTestCase.mock_matrix)
-        log.info('Finished.')
+
+    log.info('Finished.')
 
 
 if __name__ == '__main__':

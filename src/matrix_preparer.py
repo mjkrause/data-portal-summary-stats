@@ -11,7 +11,6 @@ from more_itertools import (
 import numpy as np
 import pandas as pd
 import shutil
-import re
 from typing import (
     List,
     Optional,
@@ -205,13 +204,15 @@ class MatrixPreparer:
             shutil.rmtree(self.info.extract_path)
 
     @classmethod
-    def strip_version_suffix(cls, s: str):
+    def strip_version_suffix(cls, protocol: str):
         """
         >>> MatrixPreparer.strip_version_suffix('smartseq2_v2.4.0')
         'smartseq2'
         """
-        version_suffix = r'_v\d+(?:\.\d+)*$'
-        return re.sub(version_suffix, '', s)
+        parts = protocol.split('_')
+        if len(parts) != 2:
+            raise RuntimeError(f'Library protocol {protocol} does not properly define a version')
+        return parts[0]
 
     @classmethod
     def _filter_matrix_axis(cls,
@@ -284,6 +285,7 @@ class MatrixPreparer:
         """
         if infile_name == cls.unproc_files['matrix']:
             # ScanPy requires gene expression to be int for some reason
+            # TODO Normalize?
             header, df = cls._read_matrixmarket(infile_name)
             df.iloc[:, 2] = np.rint(df.iloc[:, 2]).astype(int)
             cls._write_matrixmarket(infile_name, header, df)
@@ -297,7 +299,7 @@ class MatrixPreparer:
             os.rename(infile_name, rename)
 
     @classmethod
-    def _write_tsv(cls, path: str, df: pd.DataFrame, **pd_kwargs):
+    def _write_tsv(cls, path: str, df: pd.DataFrame, **pd_kwargs) -> None:
         df.to_csv(path, index=False, header=False, sep='\t', **pd_kwargs)
 
     @classmethod
@@ -309,8 +311,8 @@ class MatrixPreparer:
         return header, df
 
     @classmethod
-    def _write_matrixmarket(cls, path: str, header: str, df: pd.DataFrame, **pd_kwargs):
-        # scanpy needs MatrixMarket header even though pandas can't read it
+    def _write_matrixmarket(cls, path: str, header: str, df: pd.DataFrame, **pd_kwargs) -> None:
+        # ScanPy needs MatrixMarket header even though pandas can't read it
         with open(path, 'w') as f:
             f.write(header)
         df.to_csv(path, index=False, header=False, sep=' ', mode='a', **pd_kwargs)

@@ -19,9 +19,9 @@ log = logging.getLogger(__name__)
 
 def run_data_portal_summary_stats(args: argparse.Namespace):
     log.info(f'\nGenerating per-project summary statistics of matrix data from '
-             f'{args.environ} deployment environment.\n')
+             f'{args.stage} deployment environment.\n')
 
-    config = Config(args.environ)
+    config = Config(args.stage)
 
     s3 = S3Service(config)
 
