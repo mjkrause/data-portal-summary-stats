@@ -13,7 +13,7 @@ install:
   - docker build -t data-portal-summary-stats .
 
 script:
-  - coverage run -m unittest discover -s test
+  - coverage run -m unittest discover
   - docker images | grep -q data-portal*
 
 after_success:
