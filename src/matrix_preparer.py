@@ -11,12 +11,11 @@ from typing import (
     Tuple,
     Callable,
     Union,
-    FrozenSet,
 )
 from zipfile import ZipFile
 
-from src.matrix_info import MatrixInfo
-from src.utils import (
+from matrix_info import MatrixInfo
+from utils import (
     DirectoryChange,
     remove_ext,
 )
@@ -126,7 +125,7 @@ class MatrixPreparer:
         :return: series of MatrixInfo objects describing the results of the
         separation.
         """
-        log.info('Separating by library construction method...')
+        log.info('Separating by library construction approach...')
 
         with DirectoryChange(self.info.extract_path):
             barcodes_file = self.scanpy_filenames['barcodes']

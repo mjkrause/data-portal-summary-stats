@@ -17,10 +17,10 @@ import urllib.parse
 
 import requests
 
-from src import config
-from src.matrix_info import MatrixInfo
-from src.matrix_summary_stats import MatrixSummaryStats
-from src.utils import (
+from config import config
+from matrix_info import MatrixInfo
+from matrix_summary_stats import MatrixSummaryStats
+from utils import (
     convert_size,
     file_id,
     remove_ext,

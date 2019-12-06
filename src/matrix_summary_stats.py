@@ -8,7 +8,7 @@ import logging
 import matplotlib
 import warnings
 
-from src.matrix_info import MatrixInfo
+from matrix_info import MatrixInfo
 
 log = logging.getLogger(__name__)
 

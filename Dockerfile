@@ -13,4 +13,4 @@ RUN apt update \
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt
 
-ENTRYPOINT [ "python", "./data_portal_summary_stats.py"]
+ENTRYPOINT ["python", "src"]

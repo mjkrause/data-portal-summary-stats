@@ -7,9 +7,9 @@ from unittest import mock
 
 from more_itertools import first
 
-from src.matrix_preparer import MatrixPreparer
-from src.matrix_summary_stats import MatrixSummaryStats
-from test.tempdir_test_case import MockMatrixTestCase
+from matrix_preparer import MatrixPreparer
+from matrix_summary_stats import MatrixSummaryStats
+from tempdir_test_case import MockMatrixTestCase
 
 
 class TestMatrixSummaryStats(MockMatrixTestCase):
@@ -22,7 +22,7 @@ class TestMatrixSummaryStats(MockMatrixTestCase):
         new_info = first(preparer.separate())
         self.mss = MatrixSummaryStats(new_info)
 
-    @mock.patch('src.matrix_summary_stats.MatrixSummaryStats.get_min_gene_count')
+    @mock.patch('matrix_summary_stats.MatrixSummaryStats.get_min_gene_count')
     def test_create_images(self, min_gene_method):
         # Prevent zero division error with small matrix in ScanPy methods
         min_gene_method.return_value = 0

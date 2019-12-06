@@ -4,15 +4,15 @@ import logging
 import time
 import os
 
-from src import config
-from src.matrix_preparer import MatrixPreparer
-from src.matrix_provider import (
+from config import config
+from matrix_preparer import MatrixPreparer
+from matrix_provider import (
     FreshMatrixProvider,
     CannedMatrixProvider,
 )
-from src.matrix_summary_stats import MatrixSummaryStats
-from src.s3_service import S3Service
-from src.utils import TemporaryDirectoryChange
+from matrix_summary_stats import MatrixSummaryStats
+from s3_service import S3Service
+from utils import TemporaryDirectoryChange
 
 log = logging.getLogger(__name__)
 

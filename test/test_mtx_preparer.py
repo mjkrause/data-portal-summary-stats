@@ -4,11 +4,10 @@ import os
 import unittest
 
 from more_itertools import one
-import pandas as pd
 import scanpy as sc
 
-from src.matrix_preparer import MatrixPreparer
-from test.tempdir_test_case import (
+from matrix_preparer import MatrixPreparer
+from tempdir_test_case import (
     MockMatrixTestCase,
 )
 

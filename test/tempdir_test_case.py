@@ -1,8 +1,9 @@
 import shutil
 import unittest
 import os
-from src.matrix_info import MatrixInfo
-from src.utils import (
+
+from matrix_info import MatrixInfo
+from utils import (
     TemporaryDirectoryChange,
     file_id,
     remove_ext,

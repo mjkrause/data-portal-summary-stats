@@ -9,7 +9,7 @@ class Config:
 
     @property
     def use_blacklist(self) -> bool:
-        return os.environ['DPSS_BLACKLIST'] == '1'
+        return os.environ.get('DPSS_BLACKLIST') == '1'
 
     @property
     def matrix_source(self) -> str:

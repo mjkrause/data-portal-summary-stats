@@ -1,11 +1,11 @@
 import os
 import unittest
 
-from src import config
-from src.matrix_info import MatrixInfo
-from src.s3_service import S3Service
-from src.utils import TemporaryDirectoryChange
-from test.s3_test_case import S3TestCase
+from config import config
+from matrix_info import MatrixInfo
+from s3_service import S3Service
+from utils import TemporaryDirectoryChange
+from s3_test_case import S3TestCase
 
 
 class TestS3Service(S3TestCase):

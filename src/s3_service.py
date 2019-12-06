@@ -6,8 +6,8 @@ from typing import (
 
 import boto3
 
-from src import config
-from src.matrix_info import MatrixInfo
+from config import config
+from matrix_info import MatrixInfo
 
 log = logging.getLogger(__name__)
 

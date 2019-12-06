@@ -4,19 +4,18 @@ from abc import (
 )
 import os
 import unittest
-from unittest import mock
 
 import responses
 
-from src import config
-from src.matrix_provider import (
+from config import config
+from matrix_provider import (
     CannedMatrixProvider,
     FreshMatrixProvider,
 )
-from src.s3_service import S3Service
-from src.utils import TemporaryDirectoryChange
-from test.s3_test_case import S3TestCase
-from test.tempdir_test_case import TempdirTestCase
+from s3_service import S3Service
+from utils import TemporaryDirectoryChange
+from s3_test_case import S3TestCase
+from tempdir_test_case import TempdirTestCase
 
 
 class TestMatrixProvider(ABC):
