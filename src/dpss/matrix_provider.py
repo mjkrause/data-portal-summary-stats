@@ -18,9 +18,9 @@ import urllib.parse
 import requests
 
 from config import config
-from matrix_info import MatrixInfo
-from matrix_summary_stats import MatrixSummaryStats
-from utils import (
+from dpss.matrix_info import MatrixInfo
+from dpss.matrix_summary_stats import MatrixSummaryStats
+from dpss.utils import (
     convert_size,
     file_id,
     remove_ext,

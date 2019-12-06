@@ -6,7 +6,7 @@ import unittest
 from more_itertools import one
 import scanpy as sc
 
-from matrix_preparer import MatrixPreparer
+from dpss.matrix_preparer import MatrixPreparer
 from tempdir_test_case import (
     MockMatrixTestCase,
 )

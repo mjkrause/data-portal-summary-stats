@@ -2,8 +2,8 @@ import shutil
 import unittest
 import os
 
-from matrix_info import MatrixInfo
-from utils import (
+from dpss.matrix_info import MatrixInfo
+from dpss.utils import (
     TemporaryDirectoryChange,
     file_id,
     remove_ext,

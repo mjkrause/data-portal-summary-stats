@@ -3,7 +3,7 @@
 import os
 from tempfile import TemporaryDirectory
 import unittest
-from utils import (
+from dpss.utils import (
     convert_size,
     file_id,
     DirectoryChange,

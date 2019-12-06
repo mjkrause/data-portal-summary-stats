@@ -4,15 +4,15 @@ import logging
 import time
 import os
 
-from config import config
-from matrix_preparer import MatrixPreparer
-from matrix_provider import (
+from dpss.config import config
+from dpss.matrix_preparer import MatrixPreparer
+from dpss.matrix_provider import (
     FreshMatrixProvider,
     CannedMatrixProvider,
 )
-from matrix_summary_stats import MatrixSummaryStats
-from s3_service import S3Service
-from utils import TemporaryDirectoryChange
+from dpss.matrix_summary_stats import MatrixSummaryStats
+from dpss.s3_service import S3Service
+from dpss.utils import TemporaryDirectoryChange
 
 log = logging.getLogger(__name__)
 

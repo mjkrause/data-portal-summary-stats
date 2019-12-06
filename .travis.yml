@@ -12,6 +12,7 @@ install:
   - docker build -t data-portal-summary-stats .
 
 script:
+  - source environment.sh
   - coverage run -m unittest discover
   - docker images | grep -q data-portal*
 

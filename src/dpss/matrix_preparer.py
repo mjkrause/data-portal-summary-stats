@@ -14,8 +14,8 @@ from typing import (
 )
 from zipfile import ZipFile
 
-from matrix_info import MatrixInfo
-from utils import (
+from dpss.matrix_info import MatrixInfo
+from dpss.utils import (
     DirectoryChange,
     remove_ext,
 )

@@ -6,7 +6,7 @@ from moto import (
     mock_s3,
 )
 
-from config import config
+from dpss.config import config
 
 
 @mock_s3

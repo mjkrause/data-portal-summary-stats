@@ -7,8 +7,8 @@ from unittest import mock
 
 from more_itertools import first
 
-from matrix_preparer import MatrixPreparer
-from matrix_summary_stats import MatrixSummaryStats
+from dpss.matrix_preparer import MatrixPreparer
+from dpss.matrix_summary_stats import MatrixSummaryStats
 from tempdir_test_case import MockMatrixTestCase
 
 

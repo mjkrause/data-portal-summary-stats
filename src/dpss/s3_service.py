@@ -7,7 +7,7 @@ from typing import (
 import boto3
 
 from config import config
-from matrix_info import MatrixInfo
+from dpss.matrix_info import MatrixInfo
 
 log = logging.getLogger(__name__)
 

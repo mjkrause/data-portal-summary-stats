@@ -7,13 +7,13 @@ import unittest
 
 import responses
 
-from config import config
-from matrix_provider import (
+from dpss.config import config
+from dpss.matrix_provider import (
     CannedMatrixProvider,
     FreshMatrixProvider,
 )
-from s3_service import S3Service
-from utils import TemporaryDirectoryChange
+from dpss.s3_service import S3Service
+from dpss.utils import TemporaryDirectoryChange
 from s3_test_case import S3TestCase
 from tempdir_test_case import TempdirTestCase
 
