@@ -3,7 +3,7 @@
 source environment.env
 
 # Make src readable by tests
-export PYTHONPATH="$PYTHONPATH:src:test"
+export PYTHONPATH="./src:./test"
 
 # Set environment variables for Terraform:
 export TF_VAR_acc_number=$(aws sts get-caller-identity | jq -r .Account)

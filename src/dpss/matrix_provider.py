@@ -17,7 +17,7 @@ import urllib.parse
 
 import requests
 
-from config import config
+from dpss.config import config
 from dpss.matrix_info import MatrixInfo
 from dpss.matrix_summary_stats import MatrixSummaryStats
 from dpss.utils import (

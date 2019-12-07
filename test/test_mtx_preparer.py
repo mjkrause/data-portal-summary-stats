@@ -26,7 +26,7 @@ class TestMatrixPreparer(MockMatrixTestCase):
         self.assertFalse(os.path.exists(self.info.zip_path))
         self.assertEqual(set(os.listdir(self.info.extract_path)), set(MatrixPreparer.hca_filenames.values()))
 
-    def test_prepprocess(self):
+    def test_preprocess(self):
 
         self.preparer.unzip()
         self.preparer.preprocess()
