@@ -7,7 +7,7 @@ from more_itertools import one
 import scanpy as sc
 
 from dpss.matrix_preparer import MatrixPreparer
-from tempdir_test_case import (
+from test.tempdir_test_case import (
     MockMatrixTestCase,
 )
 
@@ -55,7 +55,7 @@ class TestMatrixPreparer(MockMatrixTestCase):
 
         # confirm new_mat is subset of old_mat
         # https://stackoverflow.com/a/49531052/1530508
-        # +1 for updated size row
+        # -1 for non-matching file size pseudo-headers
         self.assertEqual(len(new_mat.merge(old_mat)), len(new_mat)-1)
 
         old_entry_count = old_mat.index.size - 1
@@ -105,10 +105,11 @@ class TestMatrixPreparer(MockMatrixTestCase):
             self.assertEqual(sep_info.extract_path, os.path.join(self.info.extract_path, one(sep_info.lib_con_approaches)))
             for filekey, filename in MatrixPreparer.scanpy_filenames.items():
                 filename = os.path.join(sep_info.extract_path, filename)
-                if filekey == 'genes':
-                    self.assertTrue(os.path.islink(filename))
-                else:
+                if filekey == 'matrix':
                     self.assertTrue(os.path.isfile(filename))
+                    self.assertFalse(os.path.islink(filename))
+                else:
+                    self.assertTrue(os.path.islink(filename))
             sc.read_10x_mtx(sep_info.extract_path)
 
 

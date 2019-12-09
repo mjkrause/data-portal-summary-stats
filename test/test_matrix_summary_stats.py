@@ -9,7 +9,7 @@ from more_itertools import first
 
 from dpss.matrix_preparer import MatrixPreparer
 from dpss.matrix_summary_stats import MatrixSummaryStats
-from tempdir_test_case import MockMatrixTestCase
+from test.tempdir_test_case import MockMatrixTestCase
 
 
 class TestMatrixSummaryStats(MockMatrixTestCase):

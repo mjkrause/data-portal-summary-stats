@@ -22,21 +22,27 @@ class MatrixSummaryStats:
     # What to do for this parameter?
     min_cell_count = 10
 
-    MIN_GENE_COUNT_10X = 1200
-    MIN_GENE_COUNT_SMARTSEQ2 = 1200
-    MIN_GENE_COUNT_UNKNOWN_METHOD = 1200
+    MIN_GENE_COUNTS = {
+        'SS2': 1200,
+        '10X': 1200,
+        'Unknown method': 1200
+    }
 
     @classmethod
-    def get_min_gene_count(cls, library_construction_approach: Optional[str]) -> int:
-        if library_construction_approach is None:
-            return cls.MIN_GENE_COUNT_UNKNOWN_METHOD
-        else:
-            if library_construction_approach.startswith('10X'):
-                return cls.MIN_GENE_COUNT_10X
-            elif library_construction_approach == 'Smart-seq2':
-                return cls.MIN_GENE_COUNT_SMARTSEQ2
-            else:
-                return cls.MIN_GENE_COUNT_UNKNOWN_METHOD
+    def translate_lca(cls, lca: Optional[str]) -> str:
+        if lca is not None:
+            # note: project f8aa201c-4ff1-45a4-890e-840d63459ca2 declares the LCA
+            # 'Smart-seq' but there don't seem to be any cells with that LCA after filtering
+            if lca == 'Smart-seq2':
+                return 'SS2'
+            # both upper and lower case present in Azul
+            elif lca.upper().startswith('10X'):
+                return '10X'
+        return 'Unknown method'
+
+    @classmethod
+    def get_min_gene_count(cls, lca: Optional[str]) -> int:
+        return cls.MIN_GENE_COUNTS[cls.translate_lca(lca)]
 
     def __init__(self, mtx_info: MatrixInfo):
         self.info = mtx_info

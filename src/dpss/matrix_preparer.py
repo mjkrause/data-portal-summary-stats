@@ -3,6 +3,7 @@ import logging
 import os
 import warnings
 
+from more_itertools import one
 import numpy as np
 import pandas as pd
 import shutil
@@ -71,7 +72,6 @@ class MatrixPreparer:
         os.remove(self.info.zip_path)
 
         extracted_files = os.listdir(self.info.extract_path)
-        assert 3 <= len(extracted_files) <= 4  # optional readme
         assert all(filename in extracted_files for filename in self.hca_zipped_filenames.values())
 
         with DirectoryChange(self.info.extract_path):
@@ -136,16 +136,17 @@ class MatrixPreparer:
             found_lcas = frozenset(lib_con_data.unique())
             assert len(found_lcas) > 0
 
-            if not self.info.lib_con_approaches:
-                self.info.lib_con_approaches = found_lcas
-            elif self.info.lib_con_approaches != found_lcas:
-                raise RuntimeError(
-                    'The provided matrix library construction approach does not match the extracted files:'
-                    f'Provided: {self.info} Found: {found_lcas}'
-                )
+            if self.info.lib_con_approaches == found_lcas:
+                pass
+            elif self.info.lib_con_approaches < found_lcas:
+                log.info('Not all expected LCAS were found (filtered out?)')
+            else:
+                raise RuntimeError(f'Unexpected LCA(s) found: {found_lcas} (expected: {self.info.lib_con_approaches})')
+
+            self.info.lib_con_approaches = found_lcas
 
             if len(self.info.lib_con_approaches) == 1:
-                log.info('Homogeneous LCA.')
+                log.info(f'Homogeneous LCA: {one(self.info.lib_con_approaches)}')
                 return [self.info]
             else:
                 for lca in self.info.lib_con_approaches:

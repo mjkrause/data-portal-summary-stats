@@ -13,4 +13,4 @@ RUN apt update \
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt
 
-ENTRYPOINT ["python", "src"]
+ENTRYPOINT ["/bin/bash", "-c", "./run.sh"]

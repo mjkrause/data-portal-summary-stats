@@ -5,7 +5,7 @@ from dpss.config import config
 from dpss.matrix_info import MatrixInfo
 from dpss.s3_service import S3Service
 from dpss.utils import TemporaryDirectoryChange
-from s3_test_case import S3TestCase
+from test.s3_test_case import S3TestCase
 
 
 class TestS3Service(S3TestCase):
@@ -58,9 +58,11 @@ class TestS3Service(S3TestCase):
             self.s3.upload_figures(MatrixInfo(source='nonexistent',
                                               zip_path=None,
                                               extract_path='N/A',
-                                              project_uuid=project_uuid))
+                                              project_uuid=project_uuid,
+                                              lib_con_approaches=frozenset(['not real'])))
             found_objects = set(self.s3.list_bucket('figures'))
-            expected_objects = {f'{config.s3_figures_prefix}{project_uuid}/{file}' for file in figures_files}
+            expected_objects = {f'{config.s3_figures_prefix}{project_uuid}/Unknown method/{file}'
+                                for file in figures_files}
             self.assertEqual(found_objects, expected_objects)
 
 

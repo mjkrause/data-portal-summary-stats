@@ -14,8 +14,8 @@ from dpss.matrix_provider import (
 )
 from dpss.s3_service import S3Service
 from dpss.utils import TemporaryDirectoryChange
-from s3_test_case import S3TestCase
-from tempdir_test_case import TempdirTestCase
+from test.s3_test_case import S3TestCase
+from test.tempdir_test_case import TempdirTestCase
 
 
 class TestMatrixProvider(ABC):

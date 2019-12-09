@@ -4,6 +4,7 @@ from typing import (
 )
 
 from attr import dataclass
+from more_itertools import one
 
 
 @dataclass
@@ -16,5 +17,12 @@ class MatrixInfo:
 
     @property
     def figures_folder(self) -> str:
-        use_lca_dir = self.lib_con_approaches is not None and len(self.lib_con_approaches) > 1
-        return f'{self.project_uuid}/' + (f'{self.lib_con_approaches}/' if use_lca_dir else '')
+        lca_count = len(self.lib_con_approaches)
+        if lca_count == 1:
+            from dpss.matrix_summary_stats import MatrixSummaryStats
+            lca = one(self.lib_con_approaches)
+            suffix = MatrixSummaryStats.translate_lca(lca)
+            return f'{self.project_uuid}/{suffix}/'
+        else:
+            raise RuntimeError(f'Should not upload figures for matrix {self.project_uuid}'
+                               'because it has not been separated by library construction approach.')

@@ -30,7 +30,7 @@ logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 def main():
     log.info(f'\nGenerating per-project summary statistics of matrix data from '
-             f'{config.deployment_stage} deployment environment.\n')
+             f'{config.deployment_stage} deployment environment.')
 
     s3 = S3Service()
 
