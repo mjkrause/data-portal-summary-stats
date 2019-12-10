@@ -119,6 +119,7 @@ class TestFresh(TempdirTestCase, TestMatrixProvider):
 
         mtx_info = self.provider.obtain_matrix('e7d811e2-832a-4452-85a5-989e2f8267bf')
         self.assertEqual(mtx_info.zip_path, '13-13.mtx.zip')
+        self.assertEqual(mtx_info.source, 'fresh')
 
 
 class TestCanned(TempdirTestCase, S3TestCase, TestMatrixProvider):
@@ -136,7 +137,7 @@ class TestCanned(TempdirTestCase, S3TestCase, TestMatrixProvider):
     def test_get_entity_ids(self):
         uuids = {'123', '456', '789', 'bad'}
         for uuid in uuids:
-            self.client.put_object(Bucket=config.s3_bucket_name,
+            self.client.put_object(Bucket=config.s3_matrix_bucket_name,
                                    Key=f'{config.s3_canned_matrix_prefix}{uuid}.mtx.zip')
         self.assertEqual(set(self.provider.get_entity_ids()), uuids)
 
@@ -144,7 +145,7 @@ class TestCanned(TempdirTestCase, S3TestCase, TestMatrixProvider):
         uuid = '123'
         key = uuid + '.mtx.zip'
         with TemporaryDirectoryChange():
-            self.client.put_object(Bucket=config.s3_bucket_name,
+            self.client.put_object(Bucket=config.s3_matrix_bucket_name,
                                    Key=config.s3_canned_matrix_prefix + key)
             mtx_info = self.provider.obtain_matrix(uuid)
             self.assertEqual(os.listdir('.'), [key])

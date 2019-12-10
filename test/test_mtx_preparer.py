@@ -76,14 +76,14 @@ class TestMatrixPreparer(MockMatrixTestCase):
         sep_infos = self.preparer.separate()
         self.assertEqual(len(sep_infos), 1)
         self.assertEqual(sep_infos[0], self.info)
-        self.assertEqual(self.info.lib_con_approaches, frozenset({'Smart-seq2'}))
+        self.assertEqual(self.info.lib_con_approaches, frozenset({'SS2'}))
 
         sc.read_10x_mtx(self.info.extract_path)
 
     def test_separate_heterogeneous(self):
 
         other_approach = '10X v2 whatever'
-        expected_lcas = {frozenset({'Smart-seq2'}), frozenset({other_approach})}
+        expected_lcas = {frozenset({'SS2'}), frozenset({'10X'})}
 
         self.preparer.unzip()
         self.preparer.preprocess()

@@ -20,10 +20,10 @@ class TestS3Service(S3TestCase):
         self.assertEqual(keys, [])
 
         target_key = config.s3_canned_matrix_prefix + 'foo'
-        self.client.put_object(Bucket=config.s3_bucket_name,
+        self.client.put_object(Bucket=config.s3_matrix_bucket_name,
                                Key=target_key,
                                Body=b'Hi')
-        self.client.put_object(Bucket=config.s3_bucket_name,
+        self.client.put_object(Bucket=config.s3_matrix_bucket_name,
                                Key='non-target',
                                Body=b'Bye')
         keys = self.s3.list_bucket(target)
@@ -31,7 +31,7 @@ class TestS3Service(S3TestCase):
 
     def test_download(self):
         key = 'hi'
-        self.client.put_object(Bucket=config.s3_bucket_name,
+        self.client.put_object(Bucket=config.s3_matrix_bucket_name,
                                Key=config.s3_canned_matrix_prefix + key,
                                Body=b'Hi')
         with TemporaryDirectoryChange():
@@ -39,7 +39,7 @@ class TestS3Service(S3TestCase):
             self.assertEqual(os.listdir('.'), [key])
 
     def test_get_blacklist(self):
-        self.client.put_object(Bucket=config.s3_bucket_name,
+        self.client.put_object(Bucket=config.s3_matrix_bucket_name,
                                Key=f'blacklist',
                                Body=b'123\n456\n789\n')
 
@@ -59,9 +59,9 @@ class TestS3Service(S3TestCase):
                                               zip_path=None,
                                               extract_path='N/A',
                                               project_uuid=project_uuid,
-                                              lib_con_approaches=frozenset(['not real'])))
+                                              lib_con_approaches=frozenset(['SS2'])))
             found_objects = set(self.s3.list_bucket('figures'))
-            expected_objects = {f'{config.s3_figures_prefix}{project_uuid}/Unknown method/{file}'
+            expected_objects = {f'{config.s3_figures_prefix}{project_uuid}/SS2/{file}'
                                 for file in figures_files}
             self.assertEqual(found_objects, expected_objects)
 

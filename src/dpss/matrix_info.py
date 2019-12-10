@@ -17,12 +17,9 @@ class MatrixInfo:
 
     @property
     def figures_folder(self) -> str:
-        lca_count = len(self.lib_con_approaches)
-        if lca_count == 1:
-            from dpss.matrix_summary_stats import MatrixSummaryStats
+        try:
             lca = one(self.lib_con_approaches)
-            suffix = MatrixSummaryStats.translate_lca(lca)
-            return f'{self.project_uuid}/{suffix}/'
-        else:
+        except ValueError:
             raise RuntimeError(f'Should not upload figures for matrix {self.project_uuid}'
                                'because it has not been separated by library construction approach.')
+        return f'{self.project_uuid}/{lca}/'

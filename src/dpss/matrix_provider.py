@@ -155,11 +155,14 @@ class FreshMatrixProvider(MatrixProvider):
         with open(matrix_zipfile_name, 'wb') as matrix_zipfile:
             shutil.copyfileobj(matrix_response.raw, matrix_zipfile)
 
+        lcas = self.get_project_field(project_id, 'project_lca', [])
+        tr_lcas = frozenset(MatrixSummaryStats.translate_lca(lca) for lca in lcas)
+
         return MatrixInfo(source='fresh',
                           project_uuid=project_id,
                           zip_path=matrix_zipfile_name,
                           extract_path=remove_ext(matrix_zipfile_name, '.zip'),
-                          lib_con_approaches=frozenset(self.get_project_field(project_id, 'project_lca', {})))
+                          lib_con_approaches=tr_lcas)
 
     def _request_matrix(self, project_id: str) -> requests.models.Response:
 
@@ -225,14 +228,14 @@ class FreshMatrixProvider(MatrixProvider):
             })
 
             pagination = response_json['pagination']
-            search_after = self._get_seach_afer_params(
+            search_after = self._format_search_after_params(
                 pagination['search_after'],
                 pagination['search_after_uid']
             )
         return projects
 
     @staticmethod
-    def _get_seach_afer_params(project_title: Optional[str], document_id: Optional[str]) -> Optional[str]:
+    def _format_search_after_params(project_title: Optional[str], document_id: Optional[str]) -> Optional[str]:
         """
         Return input string to be URL compliant, i.e., replacing special characters by their
         corresponding hexadecimal representation.

@@ -14,13 +14,16 @@ from dpss.config import config
 class S3TestCase(unittest.TestCase):
 
     def setUp(self) -> None:
+        self.managed_buckets = (config.s3_matrix_bucket_name, config.s3_figure_bucket_name)
         self.client = boto3.client('s3')
-        self.client.create_bucket(Bucket=config.s3_bucket_name)
+        for bucket in self.managed_buckets:
+            self.client.create_bucket(Bucket=bucket)
 
     def tearDown(self) -> None:
-        response = self.client.list_objects_v2(Bucket=config.s3_bucket_name)
-        keys = [obj['Key'] for obj in response.get('Contents', [])]
-        for key in keys:
-            self.client.delete_object(Bucket=config.s3_bucket_name,
-                                      Key=key)
-        self.client.delete_bucket(Bucket=config.s3_bucket_name)
+        for bucket in self.managed_buckets:
+            response = self.client.list_objects_v2(Bucket=bucket)
+            keys = [obj['Key'] for obj in response.get('Contents', [])]
+            for key in keys:
+                self.client.delete_object(Bucket=bucket,
+                                          Key=key)
+            self.client.delete_bucket(Bucket=bucket)

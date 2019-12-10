@@ -25,7 +25,7 @@ class MockMatrixTestCase(TempdirTestCase):
 
     def setUp(self):
         super().setUp()
-        src = os.path.join(os.path.dirname(os.path.abspath(__file__)), self.mock_matrix)
+        src = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', self.mock_matrix)
         dst = f'./{self.mock_matrix}'
         shutil.copyfile(src, dst)
 

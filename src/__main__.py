@@ -29,8 +29,10 @@ logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 
 def main():
-    log.info(f'\nGenerating per-project summary statistics of matrix data from '
-             f'{config.deployment_stage} deployment environment.')
+    log.info('Generating per-project summary statistics of matrix data.')
+    log.info(f'{config.matrix_source.capitalize()} matrices will be obtained'
+             f' from the {config.source_stage} deployment stage.')
+    log.info(f'Results will be uploaded to the {config.target_stage} project assets folder.')
 
     s3 = S3Service()
 
@@ -45,7 +47,6 @@ def main():
     else:
         assert False
 
-    log.info(f'Processing {config.matrix_source} matrices...')
     iter_matrices = iter(provider)
     while True:
         with TemporaryDirectoryChange() as tempdir:

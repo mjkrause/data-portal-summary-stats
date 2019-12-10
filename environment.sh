@@ -1,12 +1,9 @@
 #!/bin/bash
 
-export DPSS_IMAGE_TAG=0.9.3
 
-export DPSS_DEPLOYMENT_STAGE=dev
-
-export DPSS_MATRIX_SOURCE=fresh
-
-export DPSS_BLACKLIST=1
+set -o allexport
+source environment.env
+set +o allexport
 
 export DPSS_CLUSTER_NAME=data-portal-summary-stats-fargate
 
@@ -24,10 +21,8 @@ export PYTHONPATH="./src:./test"
 # Set environment variables for Terraform:
 export TF_VAR_acc_number=$(aws sts get-caller-identity | jq -r .Account)
 export TF_VAR_aws_region=$(aws configure get region)
+export TF_VAR_dpss_deployment_stage=$DPSS_MTX_TARGET_STAGE
 export TF_VAR_image_tag=$DPSS_IMAGE_TAG
-export TF_VAR_deployment_stage=$DSS_DEPLOYMENT_STAGE
-export TF_VAR_matrix_source=$DPSS_MATRIX_SOURCE
-export TF_VAR_blacklist=$DPSS_BLACKLIST
 export TF_VAR_cluster_name=$DPSS_CLUSTER_NAME
 export TF_VAR_dpss_task_cpu=$DPSS_TASK_CPU
 export TF_VAR_dpss_task_memory=$DPSS_TASK_MEMORY

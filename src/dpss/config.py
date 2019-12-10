@@ -3,9 +3,17 @@ import os
 
 class Config:
 
+    _project_url = 'https://service.{}explore.data.humancellatlas.org/repository/projects/'
+    _matrix_url = 'https://matrix.{}data.humancellatlas.org/v1/'
+    _assets_bucket = '{}project-assets.data.humancellatlas.org'
+
     @property
-    def deployment_stage(self) -> str:
-        return os.environ['DPSS_DEPLOYMENT_STAGE']
+    def source_stage(self) -> str:
+        return os.environ['DPSS_MTX_SOURCE_STAGE']
+
+    @property
+    def target_stage(self) -> str:
+        return os.environ['DPSS_MTX_TARGET_STAGE']
 
     @property
     def use_blacklist(self) -> bool:
@@ -15,21 +23,24 @@ class Config:
     def matrix_source(self) -> str:
         return os.environ['DPSS_MATRIX_SOURCE']
 
-    @property
-    def stage_str(self) -> str:
-        return '' if self.deployment_stage == 'prod' else f'{self.deployment_stage}.'
+    def stage_str(self, stage: str) -> str:
+        return '' if stage == 'prod' else f'{stage}.'
 
     @property
     def azul_project_endpoint(self) -> str:
-        return f'https://service.{self.stage_str}explore.data.humancellatlas.org/repository/projects/'
+        return self._project_url.format(self.stage_str(self.source_stage))
 
     @property
     def hca_matrix_service_endpoint(self) -> str:
-        return f'https://matrix.{self.stage_str}data.humancellatlas.org/v1/'
+        return self._matrix_url.format(self.stage_str(self.source_stage))
 
     @property
-    def s3_bucket_name(self) -> str:
-        return f'{self.stage_str}project-assets.data.humancellatlas.org'
+    def s3_matrix_bucket_name(self) -> str:
+        return self._assets_bucket.format(self.stage_str(self.source_stage))
+
+    @property
+    def s3_figure_bucket_name(self) -> str:
+        return self._assets_bucket.format(self.stage_str(self.target_stage))
 
     @property
     def s3_canned_matrix_prefix(self) -> str:

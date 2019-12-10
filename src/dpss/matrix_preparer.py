@@ -16,6 +16,7 @@ from typing import (
 from zipfile import ZipFile
 
 from dpss.matrix_info import MatrixInfo
+from dpss.matrix_summary_stats import MatrixSummaryStats
 from dpss.utils import (
     DirectoryChange,
     remove_ext,
@@ -133,15 +134,17 @@ class MatrixPreparer:
             lib_con_data = barcodes.pop(barcodes.columns[1])
             self._write_tsv(barcodes_file, barcodes)
 
-            found_lcas = frozenset(lib_con_data.unique())
+            found_lcas = frozenset(lib_con_data.map(MatrixSummaryStats.translate_lca))
             assert len(found_lcas) > 0
 
-            if self.info.lib_con_approaches == found_lcas:
-                pass
-            elif self.info.lib_con_approaches < found_lcas:
+            if not self.info.lib_con_approaches:
+                log.info('Filling empty LCA from file')
+            elif found_lcas == self.info.lib_con_approaches:
+                log.info('All expected LCAs accounted for')
+            elif found_lcas < self.info.lib_con_approaches:
                 log.info('Not all expected LCAS were found (filtered out?)')
             else:
-                raise RuntimeError(f'Unexpected LCA(s) found: {found_lcas} (expected: {self.info.lib_con_approaches})')
+                raise RuntimeError(f'Unexpected LCA(s) found: {found_lcas} (expected {self.info.lib_con_approaches})')
 
             self.info.lib_con_approaches = found_lcas
 
