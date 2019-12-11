@@ -13,11 +13,8 @@ variable "image_name" {
 variable "acc_number" {}
 variable "aws_region" {}
 variable "image_tag" {}
-variable "deployment_stage" {}
-variable "matrix_source" {}
-variable "blacklist" {}
-variable "min_gene_count" {}
 variable "cluster_name" {}
+variable "dpss_deployment_stage" {}
 variable "dpss_task_cpu" {}
 variable "dpss_task_memory" {}
 variable "dpss_security_group_id" {}
@@ -101,7 +98,7 @@ resource "aws_iam_policy" "data-portal-summary-stats-ecs-events-policy" {
                 "ecs:RunTask"
             ],
             "Resource": [
-                "arn:aws:ecs::${data.aws_caller_identity.current.account_id}:task-definition/data-portal-summary-stats-${var.deployment_stage}:*"
+                "arn:aws:ecs::${data.aws_caller_identity.current.account_id}:task-definition/data-portal-summary-stats-${var.dpss_deployment_stage}:*"
             ],
             "Condition": {
                 "ArnLike": {
@@ -242,7 +239,7 @@ resource "aws_iam_role_policy_attachment" "task-performer-attach" {
 }
 
 resource "aws_ecs_task_definition" "dpss_ecs_task_definition" {
-  family                   = "${var.app_name}-${var.deployment_stage}"
+  family                   = "${var.app_name}-${var.dpss_deployment_stage}"
   execution_role_arn       = "${aws_iam_role.data-portal-summary-stats-ecs-events.arn}"
   task_role_arn            = "${aws_iam_role.data-portal-summary-stats-task-performer.arn}"
   requires_compatibilities = ["FARGATE"]
@@ -267,13 +264,6 @@ resource "aws_ecs_task_definition" "dpss_ecs_task_definition" {
         }
     },
     "command": [
-          "--environ",
-          "dev",
-          "--source",
-          "canned",
-          "--blacklist",
-          "--min_gene_count",
-          "1200"
      ]
   }
 ]
@@ -286,7 +276,7 @@ DEFINITION
 // "cron(30 2 * * ? *)": every day at 2:30 AM
 // "rate(6 hours)": every 6 h, starting from invocation
 resource "aws_cloudwatch_event_rule" "dpss-scheduler" {
-  name                = "dpss-trigger-${var.deployment_stage}"
+  name                = "dpss-trigger-${var.dpss_deployment_stage}"
   description         = "Schedule to run data-portal-summary-stats"
   tags                = "${local.common_tags}"
   schedule_expression = "cron(1/2 * * * ? *)"
@@ -316,9 +306,6 @@ resource "aws_cloudwatch_event_target" "scheduled_task" {
     {
       "name": "${var.app_name}",
       "command": [
-        "--environ", "${var.deployment_stage}",
-        "--source","${var.matrix_source}",
-        "--min_gene_count","${var.min_gene_count}"
       ]
     }
   ]
@@ -327,6 +314,6 @@ DOC
 }
 
 resource "aws_cloudwatch_log_group" "task-execution" {
-  name              = "/ecs/${var.app_name}-${var.deployment_stage}"
+  name              = "/ecs/${var.app_name}-${var.dpss_deployment_stage}"
   retention_in_days = 1827  // that's 5 years
 }
