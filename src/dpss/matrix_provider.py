@@ -87,7 +87,7 @@ class CannedMatrixProvider(MatrixProvider):
     def get_entity_ids(self) -> List[str]:
         """List matrix objects in S3 bucket."""
         keys = self.s3.list_bucket('matrices')
-        return [file_id(key)
+        return [file_id(key, self.mtx_ext)
                 for key in keys
                 if key.endswith(self.mtx_ext)]
 

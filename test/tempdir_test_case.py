@@ -33,4 +33,4 @@ class MockMatrixTestCase(TempdirTestCase):
             source='mock',
             zip_path=self.mock_matrix,
             extract_path=remove_ext(self.mock_matrix, '.zip'),
-            project_uuid=file_id(self.mock_matrix))
+            project_uuid=file_id(self.mock_matrix, '.mtx.zip'))

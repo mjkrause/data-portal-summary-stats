@@ -24,6 +24,8 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(file_id('foo/bar/baz.egg'), 'baz')
         self.assertEqual(file_id('dotted.dir/file'), 'file')
         self.assertEqual(file_id('eggs.ham.spam'), 'eggs')
+        self.assertEqual(file_id('eggs.ham.spam', 'spam'), 'eggs.ham')
+        self.assertEqual(file_id('eggs/ham.spam', 'foo'), 'ham.spam')
 
     def test_remove_ext(self):
         self.assertEqual(remove_ext('x.zip', '.zip'), 'x')

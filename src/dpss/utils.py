@@ -1,7 +1,10 @@
 import os
 import math
 from tempfile import TemporaryDirectory
-from typing import List
+from typing import (
+    List,
+    Optional,
+)
 
 import logging
 from more_itertools import first
@@ -27,17 +30,28 @@ def get_blacklist() -> List[str]:
         return [line.rstrip('\n') for line in fp]
 
 
-def file_id(path):
+def file_id(path: str, ext: Optional[str] = None):
     """
-    Filename without preceding directories or extensions.
+    :param path: filepath potentially including preceding directories or file
+    extensions
+    :param ext: file extension to be removed. If not provided, everything is
+    removed after the *first* '.'
+    :return: filename without preceding directories or extensions.
     """
-    return first(os.path.basename(path).split('.'))
+
+    path = os.path.basename(path)
+    if ext is None:
+        return first(path.split('.', 1))
+    else:
+        return remove_ext(path, ext)
 
 
-def remove_ext(path, ext):
+def remove_ext(path: str, ext: str):
     """
     Remove a file extension. No effect if provided extension is missing.
     """
+    if not ext.startswith('.'):
+        ext = '.' + ext
     parts = path.rsplit(ext, 1)
     if len(parts) == 2 and parts[1] == '':
         return first(parts)
