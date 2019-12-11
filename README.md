@@ -12,7 +12,17 @@ The application generates the following per-project summary figures:
 8. Ranks genes groups.
 
 The application updates daily by running a Docker container on AWS Fargate. Figures are persisted 
-on AWS S3. The general architecture is as follows:
+on AWS S3. Figures will be assigned keys based on the matrix project ID and the 
+library construction approach. Matrices containing cells processed using both 10X sequencing
+and Smart-seq2 will be split into separate entities before analysis.
+
+An example of a figure key is 
+
+`project-assets/project-stats/abe1a013-af7a-45ed-8c26-f3793c24a1f4.homo_sapiens/10X/violin.png`
+
+For a canned matrix called `abe1a013-af7a-45ed-8c26-f3793c24a1f4.homo_sapiens.mtx.zip`
+
+The general architecture is as follows:
 
 ![](./illustrations/spec_v4.png)
 
@@ -48,22 +58,39 @@ Once all required software is installed, the basic steps to start the applicatio
 
 In the following we give detailed instructions for each individual step.
 
+#### Input arguments to the container
+
+The project includes two files responsible for setting environment variables 
+used to configure the application. `environment.env` defines the variables 
+needed at runtime in a format suitable for the EnvFile Pycharm extension.
+`environment.sh` exports the variables defined in `environment.env` as well as 
+additional variables needed by docker and terraform during building and 
+deployment.
+
+`environemnt.sh` should be `source`-ed before building the container.
+The variables are documented in `environemnt.env`. those most important for configuration are:
+
+ - `DPSS_MTX_SOURCE_STAGE`: Which deployment to acquire resources from, such as 
+ blacklists and matrices. Should be set to one of `dev`, `integration`, `staging`, or `prod`.
+
+ - `DPSS_MTX_TARGET_STAGE`: Which deployment bucket to upload generated figures to.
+ Should be one of `dev`, `integration`, `staging`, `prod`, or `ux-dev`.
+
+ - `DPSS_MATRIX_SOURCE`: Whether to generate stats for "fresh" (retrieved from 
+ HCA matrix service) or "canned" (stored in S3) matrices. Should be either `fresh` or `canned`.
+
+ - `DPSS_BLACKLIST`: Whether or not to use the blacklist file to filter matrices.
+ Set to `1` to use blacklist; another other value or left unset to ignore it.
+
 ### 1. Build the Docker image
+
 To build the Docker image `data-portal-summary-stats` execute
 
 ```bash
-docker build --tag=data-portal-summary-stats:$TF_VAR_image_tag .
+docker build --tag=data-portal-summary-stats:$DPSS_IMAGE_TAG .
 ```
 from the project root.
 
-#### Input arguments to the container
-
-Once the image is built on your local system run 
-`docker run data-portal-summary-stats:$I$TF_VAR_image_tag -h` to 
-return the help message with a brief description of the command line arguments. For more 
-information on the last argument, `--min_gene_count`, 
-[go the Matrix Service Swagger UI](https://matrix.staging.data.humancellatlas.org/)
-and exercise the endpoint `/v1/filters/{filter_name}` with `genes_detected` as `filter_name`.   
 
 #### Running the `data-portal-summary-stats` Docker container locally
 
@@ -118,11 +145,8 @@ container instance (e.g., we found that a matrix file of > 2 GB size cannot be p
  
 The current implementation attempts to process all matrices by choosing a 
 combination of sufficient RAM and dropping rows from the matrices based on the
-number of genes detected. In older versions, this threshold could be controlled
-via a command-line argument/environment variable, but since we now plan on 
-setting different thresholds for rows/cells depending on their library 
-construction approach (10X sequencing vs Smart-seq2), setting a single value at 
-initialization is no longer appropriate.
+number of genes detected. However, this is not a viable long-term solution
+as the gene threshold parameter affects the analysis.
 
 The following figure shows results of some tests we ran using a matrix of project 
 _Census of Immune Cells_ from September 4, 2019, which was the project with 
@@ -140,7 +164,7 @@ of library construction approach(es). However, we have not fully investigated
 whether this value is truly appropriate for the analysis. As such, other measures
 to address large matrices may be needed in the future as these thresholds are tweaked.  
  
-The **second** solution is to simply black-list the matrix files that are too large to
+The second solution is to simply blacklist the matrix files that are too large to
  process. _blacklisting_
  a matrix file excludes it from the processing and is a solution of last resort. To use 
  the blacklist feature, set the environment variable `blacklist=1` and create a 
@@ -150,5 +174,6 @@ The **second** solution is to simply black-list the matrix files that are too la
  deployment environment.
  
  ## Tests
- Source `environment.dev.env` and run `python -m unittest` from the project root.
+ Source `environment.sh` and run `python -m unittest` from the project root.
+ If using PyCharm, consider installing the EnvFile extension and using it with `environemnt.env`.
  
