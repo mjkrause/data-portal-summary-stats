@@ -49,4 +49,9 @@ class S3Service:
             log.info(f'Uploading {figure} to S3 bucket {bucket} as {key}')
             self.client.upload_file(Filename=f'figures/{figure}',
                                     Bucket=bucket,
-                                    Key=key)
+                                    Key=key,
+                                    ExtraArgs={
+                                        'ACL': 'public-read',
+                                        'ContentDisposition': 'inline',
+                                        'ContentType': 'image/png'
+                                    })
